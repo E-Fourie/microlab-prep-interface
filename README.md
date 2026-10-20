@@ -7,6 +7,8 @@ Unofficial and independent of Hamilton. No login (assumes Prep user management i
 
 ## Run it
 
+First time? [docs/SETUP.md](docs/SETUP.md) covers updating the Prep, setting a static IP on the laptop and turning off user logins.
+
 On the laptop cabled to the Prep (laptop Ethernet `192.168.100.10`, Prep `192.168.100.101`):
 
 ```bash
