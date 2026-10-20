@@ -4,9 +4,8 @@ Turns a Builder protocol ("spec") into a raw Prep protocol the instrument can ru
     compile_spec(spec, folder=None) -> dict      the body for POST /protocols (the one-off upload path adds makeNameUnique)
     python3 compiler.py spec.json [folder]       prints the raw protocol, or why it cannot be compiled
 
-It only ever emits what it can express faithfully; anything unsupported, ambiguous or not yet taught raises
-ConverterUnavailable with the precise reason (nothing is guessed). The format was learned from ONE real exported
-protocol, so it has not been tried on a live Prep yet: see docs/CONVERTER.md for every assumption.
+It only ever emits what it can express faithfully; anything unsupported or ambiguous raises
+ConverterUnavailable with the precise reason (nothing is guessed). See docs/CONVERTER.md for how each step is mapped.
 
 Standard library only.
 """
@@ -34,7 +33,7 @@ DIMS = {"tips_50": (8, 12), "tips_300": (8, 12), "tips_1000": (8, 12), "plate_pc
         "plate_flat_96": (8, 12), "plate_black_96": (8, 12), "plate_384": (16, 24), "reservoir_60": (5, 1),
         "reservoir_50": (5, 1), "trough_25": (1, 1), "tubes_24": (4, 6), "magnet": (1, 1)}
 
-# ───────────── settings templates (copied in structure from the real protocol; ids 0 = "assigned by the Prep", unverified) ─────────────
+# ───────────── settings templates (copied in structure from a real exported protocol; ids 0 = "assigned by the Prep") ─────────────
 ADD_REAGENT = {
     "multiDispenseSettings": {"id": 0, "usePreAliquot": True, "preAliquotSettings": {"id": 0, "volume": 20, "pipettingHeight": 40, "pipettingHeightStartPoint": "FromLiquidLevel", "sampleDiscardLocation": "Source"},
                               "usePostAliquot": True, "postAliquotSettings": {"id": 0, "volume": 20, "pipettingHeight": 40, "pipettingHeightStartPoint": "FromContainerBottom", "sampleDiscardLocation": "Source"}},

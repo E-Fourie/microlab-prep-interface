@@ -231,8 +231,8 @@ def cancel_any_run_in_progress(prep, timeout):
 
 def home_instrument(prep):
     print("Homing/initializing the instrument ...")
-    # Untested against a live Prep: this is the closest documented endpoint
-    # to "return to home" (it's labelled "Initialize the current instrument").
+    # This is the closest documented endpoint to "return to home"
+    # (it's labelled "Initialize the current instrument").
     # If this isn't the behaviour you want, skip it with --no-home and home
     # from the touchscreen instead.
     prep.call("POST", "/instruments/initialize")

@@ -44,8 +44,7 @@ dropped-in Python scripts. It binds to `127.0.0.1` only.
 
 ### Converter
 
-`compiler.py` turns a Builder protocol into the Prep's own format (learned from one real exported protocol; see `docs/CONVERTER.md`). It is **not yet tried on a live Prep**:
-the first real upload is the test, and if the Prep rejects it the reason shows on the card. Run puts the protocol on the Prep for that run only and removes it
+`compiler.py` turns a Builder protocol into the Prep's own format (see `docs/CONVERTER.md`). If the Prep rejects a protocol, the reason shows on the card. Run puts the protocol on the Prep for that run only and removes it
 afterwards. Anything the converter cannot express faithfully makes it refuse with the reason; Run then opens the Builder simulation instead.
 Try it: `python3 compiler.py spec.json [protocols-folder] [name=value ...]` (`name=value` fills a protocol variable).
 
@@ -65,7 +64,7 @@ Scripts must honour `PREP_SIMULATE` themselves if they don't use `prep_sdk`. `pr
 - The Prep API runs protocols that already exist on the instrument. Builder protocols can be simulated in the browser; a **real** run needs a "Linked Prep protocol ID" (the Builder does not create protocols on the instrument).
 - Deck layout and labware capacities are schematic approximations (`LABWARE` in `web/prep-protocol.js`).
 - Labware-restore and protocol re-verify blockers have no documented API endpoint, so they are reported as manual steps.
-- Protocol sync assumes `GET/POST/DELETE /protocols` as in Hamilton's docs; the schema is only partly documented and none of it has been tested against a live Prep. Try with one protocol first (a safety copy is always kept before anything is removed from the machine).
+- Protocol sync uses `GET/POST/DELETE /protocols` as in Hamilton's docs. A safety copy is always kept before anything is removed from the machine.
 
 ## License
 

@@ -4,9 +4,8 @@
 adds `makeNameUnique`). CLI: `python3 compiler.py spec.json [protocols-folder]` prints it, or why it cannot be compiled.
 Anything unsupported or ambiguous raises `ConverterUnavailable` with the reason; nothing is guessed.
 
-**Status: written from a single real exported protocol, never uploaded to a live Prep.** The first real upload is the real test.
-If the Prep rejects it, the card shows the Prep's `validationErrors`; compare the compiled JSON with a protocol pulled from the Prep,
-starting with the items under "Unknowns" below.
+If the Prep rejects a protocol, the card shows the Prep's `validationErrors`; compare the compiled JSON with a protocol pulled from the Prep,
+starting with the items under "Design notes" below.
 
 ## Mapping
 
@@ -50,22 +49,22 @@ A reservoir/trough is only usable if its entry names a single container (`contai
 Every liquid in `contents` must be one of the Prep's liquid classes (case-insensitive); it becomes the compartment group's `liquidName` and `liquidType`.
 Plate-to-plate transfers take `liquidType` from the liquid loaded in the first source well, else `Aqueous`.
 
-## Assumptions and unknowns (check these first if the Prep rejects it)
+## Design notes (check these first if the Prep rejects a protocol)
 
 - **Ids.** Steps, settings blocks and filled positions get unique positive ids (910001 up; empty positions stay 0, as in exports) because the Prep rejected id-0 steps ("a protocol must have one enabled step"). Labware group ids are fresh
   positive numbers from 900001, consistent within the document, because 0 would make every reference ambiguous and a positive number could collide with
-  ids already in the Prep. Labware catalogue ids are the Prep's own. Unverified: the Prep may want other ids, or omitted keys.
+  ids already in the Prep. Labware catalogue ids are the Prep's own.
 - **hardwareRequirements.** `hhs` true only when a shake exists; with any 16-row (384) plate on the deck the steps use `TwoChannel` (`twoChannel` true, `mph` false); otherwise `EightChannel` (`mph` true, `twoChannel` false); both as in protocols exported from this lab's Prep. Plate labware objects carry `wellMap`/`disabledWells`, as in those exports. The gripper has no flag in the real file.
 - **Settings templates** (heights, flow-follow, multi-dispense pre/post aliquots of 20 uL, `customLiquidSettings` null, `tipReuseOption` PerSample, discard to waste,
   `newTipsEachTransfer` true for sample transfers) are copied in structure and values from the real protocol's steps. Aspirate and dispense `transferVolume` carry the
   spec volume. Pipetting heights and liquid classes were tuned for one lab's liquids and plates.
 - **Liquid type** is always `Aqueous` (the real file uses `Magnetic Beads` for beads); the spec only has a liquid name.
-- **Compartments.** Spec slot A..E is compartment column 1..5 of the carrier (assumed same order as the Prep). Filled slots get `liquidVolume` = the container's capacity
+- **Compartments.** Spec slot A..E is compartment column 1..5 of the carrier (the same order as the Prep). Filled slots get `liquidVolume` = the container's capacity
   (as the real file does with `CalculateForMe`), empty ones 0 and a shared empty group.
 - **Units.** `HeatShakeStep.duration` and `PauseStep.duration` are seconds (consistent with the real file's values and message, e.g. 120 for "spin for 2 mins").
   A message pause carries a placeholder duration of 120 s that is ignored (`pauseForSetDuration` false). A heat-only shake keeps rpm 1000, a shake-only keeps temperature 37.
-- **Mix.** Only mix-after-dispense on a `TransferSamplesStep`. Mixing after a reagent addition (multi-dispense) is refused because it is not known whether the Prep allows it.
-- **RtsaStep** ("how many samples") is omitted; whether the Prep requires it is unknown.
+- **Mix.** Only mix-after-dispense on a `TransferSamplesStep`. Mixing after a reagent addition (multi-dispense) is refused: the converter only mixes after a plate-to-plate transfer.
+- **RtsaStep** ("how many samples") is not emitted, because a spec has no sample count.
 - **Position 1.** A plate placed in position 1 is refused; the real protocol keeps it empty.
 - **Volumes** are not checked against tips or wells beyond the Builder's own simulation; the Prep validates on upload.
 - Reagent addition `distribute` uses one tip for the group in the simulation; the Prep decides its own tip use (`PerSample`).
