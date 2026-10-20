@@ -395,6 +395,10 @@ class Endpoints(unittest.TestCase):
         code, body = compile_({"beads": 120, "elute": 40})
         self.assertEqual(code, 200)
         self.assertEqual([x["aspirateSettings"]["transferVolume"] for x in body["raw"]["steps"] if x["stepType"] == "AddReagentStep"], [120, 40])
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}/local/compile", method="POST", headers={"X-Prep-UI": "1"},
+                                     data=json.dumps({"spec": json.load(open(example, encoding="utf-8")), "values": {"beads": 50, "elute": 20}}).encode())
+        with urllib.request.urlopen(req) as r:  # a protocol that is not in the library (a dropped file) compiles from the spec itself
+            self.assertEqual(json.loads(r.read())["raw"]["steps"][0]["aspirateSettings"]["transferVolume"], 50)
         code, body = compile_({"beads": 120})  # a value missing
         self.assertEqual((code, body["error"]), (400, "variables"))
         self.assertIn("Elution volume per sample needs a value", body["detail"])

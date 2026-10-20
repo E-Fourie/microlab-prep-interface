@@ -61,7 +61,7 @@ Scripts must honour `PREP_SIMULATE` themselves if they don't use `prep_sdk`. `pr
 
 ## Known limits
 
-- The Prep API runs protocols that already exist on the instrument. Builder protocols can be simulated in the browser; a **real** run needs a "Linked Prep protocol ID" (the Builder does not create protocols on the instrument).
+- Builder protocols run on the robot: Run compiles the protocol, puts it on the Prep for that run and removes it afterwards. Protocols already on the instrument run as they are.
 - Deck layout and labware capacities are schematic approximations (`LABWARE` in `web/prep-protocol.js`).
 - Labware-restore and protocol re-verify blockers have no documented API endpoint, so they are reported as manual steps.
 - Protocol sync uses `GET/POST/DELETE /protocols` as in Hamilton's docs. A safety copy is always kept before anything is removed from the machine.

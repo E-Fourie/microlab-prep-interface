@@ -585,11 +585,11 @@ async function startFlow(item) {
 async function runBuilderProtocol(item, spec) {
   let raw, values;
   if (spec.variables && spec.variables.length) { values = await askVariables(item.title, spec); if (!values) return; } // the person running it fills in the variables first
-  try { raw = (await local('POST', '/compile', { name: item.name, values })).raw; }
+  try { raw = (await local('POST', '/compile', item.name ? { name: item.name, values } : { spec, values })).raw; }
   catch (e) {
     if (e.status !== 501) return toast(fmtErr(e.detail || e), true);
-    toast("This protocol can't run for real yet: " + fmtErr(e.detail || e.message || 'the converter refused it') + " Opening the simulation instead.", true, 15000);
-    window.BUILDER_OPEN = spec; window.BUILDER_FILE = item.name; return navigate('builder');
+    toast("This protocol can't be run on the robot: " + fmtErr(e.detail || e.message || 'the converter refused it') + " Opening the simulation instead.", true, 15000);
+    window.BUILDER_OPEN = spec; window.BUILDER_FILE = item.name || null; return navigate('builder');
   }
   const choice = await startModal(item.title, S.cfg.mock, true); if (!choice) return;
   let id;
@@ -611,8 +611,8 @@ async function runOnce(file) {
       const p = runScript(file.name, title, S.cfg.mock || ch.practice, text); navigate('run'); return p;
     }
     const o = JSON.parse(text);
-    if (o && Array.isArray(o.steps)) { // a Builder protocol: run it for real if linked to a Prep protocol, otherwise simulate it in the Builder
-      if (!o.instrumentProtocolId) { window.BUILDER_OPEN = o; window.BUILDER_FILE = null; toast('Opened in the Builder to simulate'); return navigate('builder'); }
+    if (o && Array.isArray(o.steps)) { // a Builder protocol: compile and run it (or, if it is linked to a protocol already on the Prep, run that one)
+      if (!o.instrumentProtocolId) return runBuilderProtocol({ title: o.name || title }, o);
       const ch = await startModal(o.name || title, S.cfg.mock, true); if (!ch) return;
       const p = runInstrument({ id: o.instrumentProtocolId, name: o.name || title, simulate: S.cfg.mock || ch.practice }); navigate('run'); return p;
     }

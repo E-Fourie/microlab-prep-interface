@@ -249,13 +249,16 @@ class Handler(BaseHTTPRequestHandler):
                 req = json.loads(self.body() or b"{}")
                 SYNC.run_pass(manual=True)
             return self.send_json(200, SYNC.view())
-        if parts[0] == "compile" and m == "POST":  # {name, values}: a saved Builder protocol -> the raw Prep protocol. values fills the protocol's variables.
+        if parts[0] == "compile" and m == "POST":  # {name, values} or {spec, values}: a Builder protocol -> the raw Prep protocol. values fills the protocol's variables.
             req = json.loads(self.body() or b"{}")
-            name = safe_name(req.get("name"))
-            fp = os.path.join(CONFIG["protocols"], name or "")
-            if not name or not name.endswith(".json") or not os.path.isfile(fp):
-                return self.send_json(404, {"error": "not found"})
-            doc = json.load(open(fp, encoding="utf-8"))
+            if isinstance(req.get("spec"), dict):  # a protocol that is not saved in the library (a dropped file): compile it as given
+                doc = req["spec"]
+            else:
+                name = safe_name(req.get("name"))
+                fp = os.path.join(CONFIG["protocols"], name or "")
+                if not name or not name.endswith(".json") or not os.path.isfile(fp):
+                    return self.send_json(404, {"error": "not found"})
+                doc = json.load(open(fp, encoding="utf-8"))
             if isinstance(doc, dict) and doc.get("variables"):  # a protocol with variables is only compiled once every one has a value in range
                 doc, errs = spec_check.resolve(doc, req.get("values"))
                 if errs:
