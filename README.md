@@ -67,4 +67,4 @@ Scripts must honour `PREP_SIMULATE` themselves if they don't use `prep_sdk`. `pr
 
 ## License
 
-MIT, see [LICENSE](LICENSE). `labware_catalogue.json` and `liquid_classes.json` are lists exported from a Prep and belong to their owners; see [NOTICE](NOTICE).
+MIT, see [LICENSE](LICENSE). `labware_catalogue.json` and `liquid_classes.json` are exports from a Prep; see [NOTICE](NOTICE).
