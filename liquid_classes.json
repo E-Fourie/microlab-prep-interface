@@ -1,0 +1,69 @@
+{
+ "_note": "The Prep's liquid classes (GET /liquids export). The only liquids the compiler and Builder offer.",
+ "liquids": [
+  {
+   "id": "LQE.Liquid-000000000000000000001",
+   "name": "Acetonitrile"
+  },
+  {
+   "id": "c64098cff5b9406b9ceccecbfc13f8ac",
+   "name": "Aqueous"
+  },
+  {
+   "id": "f62150f0439442bfacba5c1d5d1fa53d",
+   "name": "Aqueous with Detergent"
+  },
+  {
+   "id": "dbfcdbdacf404b30ad52a89eb53be13a",
+   "name": "Blood"
+  },
+  {
+   "id": "94a4553d7e0344678132d16ddc611619",
+   "name": "BSA Solution"
+  },
+  {
+   "id": "LQE.Liquid-000000000000000000003",
+   "name": "DMSO"
+  },
+  {
+   "id": "ab7f4f186f274668a1d29e42ad9470d8",
+   "name": "Ethanol 100%"
+  },
+  {
+   "id": "e641dcf699214a10b1363ff3b7b657d2",
+   "name": "Ethanol 50%"
+  },
+  {
+   "id": "5dad1ab8d02040cc98805a2567df5366",
+   "name": "Ethanol 70%"
+  },
+  {
+   "id": "682f1d16802e4b51996b5065f7047386",
+   "name": "Glycerin 50%"
+  },
+  {
+   "id": "LQE.Liquid-000000000000000000006",
+   "name": "Glycerin 80%"
+  },
+  {
+   "id": "f0bf9ef6b7e6432a9897142afd2efc23",
+   "name": "Magnetic Beads"
+  },
+  {
+   "id": "5557eefb04a747d38fe83932ff4923e3",
+   "name": "Master Mix"
+  },
+  {
+   "id": "c7c0d94f174b4779bb12a3cc4df2aa8e",
+   "name": "Methanol 100%"
+  },
+  {
+   "id": "c938fe3b7a904c6792a56c9ac57f44c4",
+   "name": "Methanol 50%"
+  },
+  {
+   "id": "LQE.Liquid-000000000000000000008",
+   "name": "Serum"
+  }
+ ]
+}

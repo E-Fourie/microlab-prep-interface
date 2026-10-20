@@ -1,0 +1,102 @@
+{
+  "name": "Example - Bead clean-up with variable amounts",
+  "description": "Adds a variable amount of magnetic beads to three samples, shakes, collects the beads on the magnet, then elutes in a variable volume. Whoever presses Run is asked for the two amounts first.",
+  "instrumentProtocolId": "",
+  "variables": [
+    {
+      "name": "beads",
+      "label": "Bead volume per sample",
+      "default": 90,
+      "min": 10,
+      "max": 200,
+      "unit": "µL"
+    },
+    {
+      "name": "elute",
+      "label": "Elution volume per sample",
+      "default": 30,
+      "min": 10,
+      "max": 100,
+      "unit": "µL"
+    }
+  ],
+  "deck": {
+    "2": {
+      "lw": "tips_300",
+      "label": "300 µL tips"
+    },
+    "3": {
+      "lw": "plate_pcr",
+      "label": "Samples"
+    },
+    "4": {
+      "lw": "reservoir_60",
+      "label": "Reagents"
+    },
+    "5": {
+      "lw": "magnet",
+      "label": "Magnet"
+    }
+  },
+  "contents": [
+    {
+      "pos": "3",
+      "wells": "A1:C1",
+      "liquid": "Aqueous",
+      "vol": 50
+    },
+    {
+      "pos": "4",
+      "wells": "A1",
+      "liquid": "Magnetic Beads",
+      "vol": 10000
+    },
+    {
+      "pos": "4",
+      "wells": "B1",
+      "liquid": "Aqueous",
+      "vol": 10000
+    }
+  ],
+  "steps": [
+    {
+      "type": "distribute",
+      "fromPos": "4",
+      "fromWells": "A1",
+      "toPos": "3",
+      "toWells": "A1:C1",
+      "vol": "$beads",
+      "label": "Add beads"
+    },
+    {
+      "type": "shake",
+      "pos": "3",
+      "temp": 0,
+      "rpm": 1000,
+      "minutes": 5
+    },
+    {
+      "type": "move",
+      "fromPos": "3",
+      "toPos": "5"
+    },
+    {
+      "type": "pause",
+      "message": "Wait for the beads to settle, then remove the supernatant by hand."
+    },
+    {
+      "type": "move",
+      "fromPos": "5",
+      "toPos": "3"
+    },
+    {
+      "type": "distribute",
+      "fromPos": "4",
+      "fromWells": "B1",
+      "toPos": "3",
+      "toWells": "A1:C1",
+      "vol": "$elute",
+      "label": "Add elution buffer"
+    }
+  ]
+}

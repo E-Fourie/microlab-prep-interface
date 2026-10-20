@@ -1,0 +1,101 @@
+{
+ "name": "Example - Plasmid normalisation to 20 µL",
+ "description": "Adds TE buffer (reservoir slot 1) to six wells of a PCR plate on the heater-shaker (position 1), transfers 2 µL of each plasmid stock into them, mixes, then shakes 1 min. Final volume 20 µL per well.",
+ "instrumentProtocolId": "",
+ "deck": {
+  "1": {
+   "lw": "c_208",
+   "label": "Normalised plate"
+  },
+  "2": {
+   "lw": "c_7",
+   "label": "300 µL tips"
+  },
+  "3": {
+   "lw": "c_47",
+   "label": "Plasmid stocks"
+  },
+  "4": {
+   "lw": "reservoir_60",
+   "label": "Reagents"
+  }
+ },
+ "contents": [
+  {
+   "pos": "4",
+   "wells": "A1",
+   "liquid": "Aqueous",
+   "vol": 30000
+  },
+  {
+   "pos": "4",
+   "wells": "B1",
+   "liquid": "Ethanol 70%",
+   "vol": 20000
+  },
+  {
+   "pos": "3",
+   "wells": "A1:A6",
+   "liquid": "Aqueous",
+   "vol": 100
+  }
+ ],
+ "steps": [
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "A1",
+   "toPos": "1",
+   "toWells": "A1:F1",
+   "vol": 18
+  },
+  {
+   "type": "transfer",
+   "fromPos": "3",
+   "fromWells": "A1:A6",
+   "toPos": "1",
+   "toWells": "A1:F1",
+   "vol": 2
+  },
+  {
+   "type": "mix",
+   "pos": "1",
+   "wells": "A1:F1",
+   "vol": 10,
+   "cycles": 3
+  },
+  {
+   "type": "shake",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 1
+  },
+  {
+   "type": "pause",
+   "message": "Seal the plate and spin down briefly."
+  }
+ ],
+ "labware": {
+  "c_7": {
+   "label": "300 µL Framed Conductive No Filter",
+   "kind": "tips",
+   "rows": 8,
+   "cols": 12,
+   "tipVol": 300
+  },
+  "c_208": {
+   "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+   "kind": "plate",
+   "rows": 8,
+   "cols": 12,
+   "cap": 200
+  },
+  "c_47": {
+   "label": "Hamilton, 24, Microtube Rack, 6600409-01",
+   "kind": "tubes",
+   "rows": 4,
+   "cols": 6,
+   "cap": 1500
+  }
+ }
+}

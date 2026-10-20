@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Microlab Prep Control</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%230f6b6b%27/%3E%3Crect x=%278%27 y=%278%27 width=%2716%27 height=%2716%27 fill=%27none%27 stroke=%27white%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="ambient" aria-hidden="true"><i></i><i></i></div>
+
+<header class="top">
+  <div class="nav wrap">
+    <a class="brand" href="#protocols">
+      <span>Microlab Prep Control<small>FOR THE HAMILTON MICROLAB PREP</small></span>
+    </a>
+    <nav class="nav-links" id="nav">
+      <a href="#protocols" data-view="protocols">Protocols</a>
+      <a href="#builder" data-view="builder">Builder</a>
+      <a href="#instrument" data-view="instrument">Maintenance</a>
+    </nav>
+    <div class="machine">
+      <button class="status-pill" id="statusPill" aria-haspopup="true" aria-expanded="false" title="Machine connection and settings">
+        <span class="dot"></span><span id="statusText">Connecting…</span><span class="caret"></span>
+      </button>
+      <div class="menu" id="machineMenu" hidden></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<div class="drop-overlay" id="dropOverlay">
+  <div class="dz" data-mode="add"><b>Add to protocols</b><span>Saved here, starred, and put on the Prep</span></div>
+  <div class="dz" data-mode="once"><b>Run once</b><span>Run it now without saving it</span></div>
+</div>
+<div class="toasts" id="toasts"></div>
+<div class="hovercard" id="hovercard" hidden></div>
+<div class="modal-back" id="modal" hidden><div class="modal" id="modalBody"></div></div>
+
+<script src="/select.js"></script>
+<script src="/prep-catalogue.js"></script>
+<script src="/prep-protocol.js"></script>
+<script src="/app.js"></script>
+<script src="/builder.js"></script>
+</body>
+</html>

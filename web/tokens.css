@@ -1,0 +1,119 @@
+/* ═══════════════════════════════════════════════════════
+   Shared design tokens — the handful of CSS variables every
+   logged-in page was independently redefining (same values,
+   copy-pasted ~10 times). Link this before a page's own <style>
+   or stylesheet; the page can still layer its own extra/semantic
+   variables (e.g. --good, --warn, --credit) on top in its own
+   :root block — this file only owns the common baseline.
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --bg: #f6f4ee;
+  --surface: #ffffff;
+  --ink: #1c2b28;
+  --ink-muted: #5b6b67;
+  --accent: #0a4f47;
+  --accent-light: #e3efec;
+  --accent2: #0f6e63;
+  --border: #dcd9cd;
+  --danger: #a5433b;
+  --danger-light: #fbeceb;
+  --good: #1c6b3f;
+  --good-light: #e6f3ea;
+  /* Money in and out: credits and charges on invoices and ledgers. */
+  --credit: #0a4f47;
+  --credit-light: #e3efec;
+  --debit: #a5433b;
+  --debit-light: #fbeceb;
+  --chart-neutral: #3b6ef5;
+  --chart-profit: #b5651d;
+  --line: #e6e3d8;
+  --soft: #f1efe7;
+  --warn: #9a6b0f;
+  --warn-light: #fdf3df;
+  --warn-border: #eecf94;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  --sans: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ---------- liquid glass ----------
+     Shared frosted-surface treatment: translucent white layered over a
+     blurred/saturated view of whatever sits behind it (the ambient blobs
+     below, or page content), plus a soft layered shadow and a 1px inner
+     highlight along the top edge to fake light catching a glass rim.
+     Deliberately light-touch — applied to chrome (nav, panels, cards,
+     modals, buttons) rather than through dense data tables, which stay
+     on solid surfaces for legibility. */
+  --glass-bg: rgba(255, 255, 255, 0.60);
+  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  /* Reserved for chrome that has to stay legible over arbitrary/busy
+     content behind it — the persistent nav bar and its dropdown menus,
+     and floating modals/drawers — where any visible see-through reads as
+     illegible rather than "glassy". Fully opaque; the glass language here
+     comes from the blur-softened border, rounded corners and layered
+     shadow, not from transparency. */
+  --glass-bg-nav: #ffffff;
+  --glass-bg-nav-menu: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-blur: blur(20px) saturate(160%);
+  --glass-blur-sm: blur(10px) saturate(140%);
+  --glass-shadow: 0 1px 1px rgba(28, 43, 40, 0.02), 0 8px 20px -10px rgba(28, 43, 40, 0.14);
+  --glass-shadow-sm: 0 1px 1px rgba(28, 43, 40, 0.02), 0 4px 12px -6px rgba(28, 43, 40, 0.09);
+  --shadow-card: 0 1px 2px rgba(28, 43, 40, .04), 0 6px 18px -10px rgba(28, 43, 40, .16);
+  --shadow-card-hover: 0 2px 4px rgba(28, 43, 40, .05), 0 14px 28px -14px rgba(10, 79, 71, .28);
+  --radius-btn: 10px;
+  --radius-card: 14px;
+  --hover-row: #f7f6f0;
+  --danger-border: #e5b9b5;
+  --good-border: #bfdcc9;
+  --page-max: 1240px;
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  /* Fill shared by every primary button and active control: a very subtle
+     top-to-bottom shade of the accent green, plus a small flat shadow for
+     lift. Change it here and it lands everywhere. */
+  --btn-bg: linear-gradient(180deg, #0c5a51, #0a4f47);
+  --btn-shadow: 0 1px 2px rgba(10, 79, 71, .22);
+  --btn-shadow-hover: 0 3px 8px -3px rgba(10, 79, 71, .38);
+
+  /* Set by /shared/nav.js once the global nav has measured itself, so
+     any page that needs to offset fixed/sticky elements below the nav
+     (e.g. a sidebar) can use var(--global-nav-height, 0px). */
+  --global-nav-height: 0px;
+}
+
+* { box-sizing: border-box; }
+body { font-family: var(--sans); background: var(--bg); }
+
+/* ---------- native <select> ----------
+   Swaps the OS-drawn dropdown arrow (which looks jarringly different
+   from every other control on the page) for a small chevron in the
+   app's muted-ink color, so every native <select> across the site
+   matches without each page needing its own select styling. Drawn as
+   two little CSS gradient triangles rather than an SVG data: URI --
+   this app's CSP only allows 'self'/blob: on img-src, and a gradient
+   is computed by the CSS engine rather than fetched as an image, so
+   it isn't subject to that restriction at all.
+   The arrow-clearance/background properties are !important: harmless,
+   since no page relies on a specific background or right padding on
+   a select, and it's the only way to guarantee a page's own (often
+   more specific, e.g. ".form-field select") rule can't leave text
+   sitting under the custom arrow. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none !important;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%),
+    linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 19px) center,
+    calc(100% - 15px) center !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat !important;
+  padding-right: 34px !important;
+}
+select::-ms-expand { display: none; }

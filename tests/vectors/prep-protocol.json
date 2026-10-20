@@ -1,0 +1,4664 @@
+[
+ {
+  "name": "minimal valid",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "empty protocol still structurally valid",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "not an object",
+  "valid": false,
+  "input": [
+   1,
+   2
+  ]
+ },
+ {
+  "name": "string input",
+  "valid": false,
+  "input": "drop table"
+ },
+ {
+  "name": "missing name",
+  "valid": false,
+  "input": {
+   "name": "",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "name with control char",
+  "valid": false,
+  "input": {
+   "name": "bad\u0000name",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "name too long",
+  "valid": false,
+  "input": {
+   "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "unknown labware",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "rocket",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "1",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "deck position 9",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "9": {
+     "lw": "plate_pcr",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "1",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "tips in the HHS",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "tips_300",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "1",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "reservoir rack at position 2",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "1",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "reservoir rack at position 8",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "8": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "magnet at 5",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "5": {
+     "lw": "magnet",
+     "label": ""
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "6",
+     "toPos": "5"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet in the HHS",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "magnet",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "unknown step type",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "shell",
+     "cmd": "rm -rf /"
+    }
+   ]
+  }
+ },
+ {
+  "name": "negative volume",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": -5
+    }
+   ]
+  }
+ },
+ {
+  "name": "volume not a number",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": "lots"
+    }
+   ]
+  }
+ },
+ {
+  "name": "bad well text",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "6",
+     "wells": "Z99; DROP",
+     "vol": 10,
+     "cycles": 3
+    }
+   ]
+  }
+ },
+ {
+  "name": "bad position in a step",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "0",
+     "wells": "A1",
+     "vol": 10,
+     "cycles": 3
+    }
+   ]
+  }
+ },
+ {
+  "name": "cycles not whole",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "6",
+     "wells": "A1",
+     "vol": 10,
+     "cycles": 2.5
+    }
+   ]
+  }
+ },
+ {
+  "name": "shake rpm too high",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "shake",
+     "temp": 37,
+     "rpm": 99999,
+     "minutes": 1
+    }
+   ]
+  }
+ },
+ {
+  "name": "pause without message",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "pause",
+     "message": ""
+    }
+   ]
+  }
+ },
+ {
+  "name": "steps not a list",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": "nope"
+  }
+ },
+ {
+  "name": "too many steps",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    },
+    {
+     "type": "pause",
+     "message": "x"
+    }
+   ]
+  }
+ },
+ {
+  "name": "extra fields are dropped, not errors",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ],
+   "evil": {
+    "a": {
+     "x": 1
+    }
+   },
+   "instrumentProtocolId": "abc"
+  }
+ },
+ {
+  "name": "well column 0",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "6",
+     "wells": "A0",
+     "vol": 10,
+     "cycles": 3
+    }
+   ]
+  }
+ },
+ {
+  "name": "well column 25",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "6",
+     "wells": "A25",
+     "vol": 10,
+     "cycles": 3
+    }
+   ]
+  }
+ },
+ {
+  "name": "well range ending at column 0",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "6",
+     "wells": "A1:A0",
+     "vol": 10,
+     "cycles": 3
+    }
+   ]
+  }
+ },
+ {
+  "name": "catalogue plate with its definition",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "6": {
+     "lw": "c_208",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_208": {
+     "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 200
+    }
+   }
+  }
+ },
+ {
+  "name": "catalogue plate in the HHS (it starts empty)",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "c_208",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_208": {
+     "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 200
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware key missing c_ prefix",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "costar": {
+     "label": "Costar 3603",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 300
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware key uppercase",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_Costar": {
+     "label": "Costar 3603",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 300
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware kind magnet",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_m": {
+     "label": "m",
+     "kind": "magnet",
+     "rows": 1,
+     "cols": 1,
+     "cap": 1
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware kind reservoirs",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_r": {
+     "label": "r",
+     "kind": "reservoirs",
+     "rows": 5,
+     "cols": 1,
+     "cap": 1000
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware too many rows",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_t": {
+     "label": "t",
+     "kind": "plate",
+     "rows": 17,
+     "cols": 12,
+     "cap": 100
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware zero capacity",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_t": {
+     "label": "t",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 0
+    }
+   }
+  }
+ },
+ {
+  "name": "custom labware missing label",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_t": {
+     "label": "",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 100
+    }
+   }
+  }
+ },
+ {
+  "name": "custom tip rack is refused (not in the Prep catalogue)",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "c_tips",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_tips": {
+     "label": "Filter tips",
+     "kind": "tips",
+     "rows": 8,
+     "cols": 12,
+     "tipVol": 200
+    }
+   }
+  }
+ },
+ {
+  "name": "custom tip rack on the HHS",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "c_tips",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_tips": {
+     "label": "Filter tips",
+     "kind": "tips",
+     "rows": 8,
+     "cols": 12,
+     "tipVol": 200
+    }
+   }
+  }
+ },
+ {
+  "name": "custom tubes on the HHS",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "c_tubes",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_tubes": {
+     "label": "Tubes",
+     "kind": "tubes",
+     "rows": 4,
+     "cols": 6,
+     "cap": 1500
+    }
+   }
+  }
+ },
+ {
+  "name": "deck uses a key that is not in the catalogue",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "c_missing",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "labware is not an object",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {},
+   "contents": [],
+   "steps": [],
+   "labware": [
+    1
+   ]
+  }
+ },
+ {
+  "name": "built-in Corning flat-bottom plate",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "3": {
+     "lw": "plate_384",
+     "label": ""
+    },
+    "6": {
+     "lw": "plate_flat_96",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "384-well plate last well",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "3": {
+     "lw": "plate_384",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "3",
+     "wells": "P24",
+     "vol": 10,
+     "cycles": 2
+    }
+   ]
+  }
+ },
+ {
+  "name": "gripper move off and onto the HHS",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "1"
+    },
+    {
+     "type": "move",
+     "fromPos": "1",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "shake with no pos defaults to the HHS",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "shake",
+     "temp": 0,
+     "rpm": 500,
+     "minutes": 1
+    }
+   ]
+  }
+ },
+ {
+  "name": "shake a plate at position 3",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "shake",
+     "pos": "3",
+     "temp": 37,
+     "rpm": 1000,
+     "minutes": 3
+    }
+   ]
+  }
+ },
+ {
+  "name": "shake pos 9 is not a position",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "shake",
+     "pos": "9",
+     "temp": 0,
+     "rpm": 500,
+     "minutes": 1
+    }
+   ]
+  }
+ },
+ {
+  "name": "shake pos as text is rejected",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "shake",
+     "pos": "HHS",
+     "temp": 0,
+     "rpm": 500,
+     "minutes": 1
+    }
+   ]
+  }
+ },
+ {
+  "name": "reservoir_50 (not in the Prep catalogue) at position 8",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "8": {
+     "lw": "reservoir_50",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "reservoir_50 (not in the Prep catalogue) at position 2",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "reservoir_50",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "reservoir_50 (not in the Prep catalogue) in the HHS",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "reservoir_50",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "pipetting options valid",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "aspFlow": 100,
+     "dspFlow": 200,
+     "aspHeight": -2,
+     "dspHeight": 5,
+     "tipDiscard": "rack"
+    }
+   ]
+  }
+ },
+ {
+  "name": "pipetting options blank are ignored",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "aspFlow": "",
+     "tipDiscard": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "aspirate flow zero",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "aspFlow": 0
+    }
+   ]
+  }
+ },
+ {
+  "name": "dispense flow too high",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "dspFlow": 1001
+    }
+   ]
+  }
+ },
+ {
+  "name": "aspirate height too low",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "aspHeight": -51
+    }
+   ]
+  }
+ },
+ {
+  "name": "dispense height negative",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "dspHeight": -1
+    }
+   ]
+  }
+ },
+ {
+  "name": "bad tip discard",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "tipDiscard": "bin"
+    }
+   ]
+  }
+ },
+ {
+  "name": "a plate cannot start on the HHS",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "1": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "catalogue plate used without a labware field",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "6": {
+     "lw": "c_208",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "catalogue tip rack",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "c_1",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "catalogue key that does not exist",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "6": {
+     "lw": "c_99999",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": []
+  }
+ },
+ {
+  "name": "catalogue labware definition that does not match",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "6": {
+     "lw": "c_208",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_208": {
+     "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+     "kind": "plate",
+     "rows": 16,
+     "cols": 24,
+     "cap": 200
+    }
+   }
+  }
+ },
+ {
+  "name": "labware definition for something not in the catalogue",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "6": {
+     "lw": "c_208",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [],
+   "labware": {
+    "c_208": {
+     "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 200
+    },
+    "c_777777": {
+     "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+     "kind": "plate",
+     "rows": 8,
+     "cols": 12,
+     "cap": 200
+    }
+   }
+  }
+ },
+ {
+  "name": "liquid class in any capitalisation",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "ethanol 70%",
+     "vol": 1000
+    }
+   ],
+   "steps": []
+  }
+ },
+ {
+  "name": "liquid that is not a Prep liquid class",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Water",
+     "vol": 1000
+    }
+   ],
+   "steps": []
+  }
+ },
+ {
+  "name": "variable used as a step volume",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [
+    {
+     "name": "v",
+     "label": "Volume",
+     "default": 20,
+     "min": 5,
+     "max": 100
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "variable used for cycles and shake settings",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [
+    {
+     "name": "c",
+     "label": "C",
+     "default": 3,
+     "min": 1,
+     "max": 10,
+     "unit": ""
+    },
+    {
+     "name": "r",
+     "label": "R",
+     "default": 800,
+     "min": 100,
+     "max": 2000,
+     "unit": "rpm"
+    }
+   ],
+   "steps": [
+    {
+     "type": "mix",
+     "pos": "3",
+     "wells": "A1",
+     "vol": 10,
+     "cycles": "$c"
+    },
+    {
+     "type": "shake",
+     "pos": "3",
+     "temp": 0,
+     "rpm": "$r",
+     "minutes": 1
+    }
+   ]
+  }
+ },
+ {
+  "name": "variable that is not declared",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "variable range wider than the field allows",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [
+    {
+     "name": "v",
+     "label": "V",
+     "default": 20,
+     "min": 0,
+     "max": 99999
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "two variables with one name",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [
+    {
+     "name": "v",
+     "default": 1
+    },
+    {
+     "name": "v",
+     "default": 2
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "variable name starting with a digit",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [
+    {
+     "name": "1v",
+     "default": 1
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "variable default outside its range",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": [
+    {
+     "name": "v",
+     "default": 500,
+     "min": 5,
+     "max": 100
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "variables is not a list",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 5000
+    }
+   ],
+   "variables": "x",
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1:C1",
+     "vol": "$v"
+    }
+   ]
+  }
+ }
+]

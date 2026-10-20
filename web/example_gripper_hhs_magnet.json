@@ -1,0 +1,73 @@
+{
+ "name": "Example - gripper: HHS and magnet",
+ "description": "The plate starts on the heater-shaker (position 1) and is shaken, the gripper moves it onto the magnet at position 5 where the beads are mixed, then carries it back to the heater-shaker for a second shake.",
+ "deck": {
+  "1": {
+   "lw": "c_208",
+   "label": "Bead plate"
+  },
+  "2": {
+   "lw": "c_7",
+   "label": "300 µL tips"
+  },
+  "5": {
+   "lw": "magnet",
+   "label": "Magnet"
+  }
+ },
+ "contents": [
+  {
+   "pos": "1",
+   "wells": "A1:F1",
+   "liquid": "Magnetic Beads",
+   "vol": 50
+  }
+ ],
+ "steps": [
+  {
+   "type": "shake",
+   "temp": 37,
+   "rpm": 800,
+   "minutes": 5
+  },
+  {
+   "type": "move",
+   "fromPos": "1",
+   "toPos": "5"
+  },
+  {
+   "type": "mix",
+   "pos": "5",
+   "wells": "A1:F1",
+   "vol": 30,
+   "cycles": 5
+  },
+  {
+   "type": "move",
+   "fromPos": "5",
+   "toPos": "1"
+  },
+  {
+   "type": "shake",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 2
+  }
+ ],
+ "labware": {
+  "c_7": {
+   "label": "300 µL Framed Conductive No Filter",
+   "kind": "tips",
+   "rows": 8,
+   "cols": 12,
+   "tipVol": 300
+  },
+  "c_208": {
+   "label": "Hamilton, 96, PCR, Full Skirt, 200µL, Clear, Low Profile",
+   "kind": "plate",
+   "rows": 8,
+   "cols": 12,
+   "cap": 200
+  }
+ }
+}

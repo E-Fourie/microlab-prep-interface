@@ -1,0 +1,9 @@
+This project is independent and unofficial. It is not made, endorsed or supported by Hamilton Company.
+"Hamilton", "Microlab" and "Prep" are trademarks of their owners, used only to say which instrument this works with.
+
+labware_catalogue.json and liquid_classes.json are lists of labware and liquid classes exported from a Hamilton Microlab Prep.
+They are included so the Builder and converter offer exactly what the instrument knows. They are not covered by this
+project's MIT license and remain the property of their owners. If you are the owner and want them removed, open an issue.
+Generate your own with GET /labware and GET /liquids on your instrument, then run scripts/build-prep-catalogue.js.
+
+Use at your own risk: this software drives a laboratory robot. Test in simulation first.

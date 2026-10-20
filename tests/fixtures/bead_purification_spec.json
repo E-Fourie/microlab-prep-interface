@@ -1,0 +1,213 @@
+{
+ "specVersion": 1,
+ "name": "Bead purification (spec)",
+ "description": "Spec equivalent of a bead clean-up: the lab's real protocol minus what the spec cannot say (sample count step, discard to waste).",
+ "deck": {
+  "2": {
+   "lw": "tips_300",
+   "label": "Tips"
+  },
+  "3": {
+   "lw": "plate_deep",
+   "label": "Samples"
+  },
+  "4": {
+   "lw": "reservoir_60",
+   "label": "Reagents"
+  },
+  "5": {
+   "lw": "magnet",
+   "label": "Magnet"
+  },
+  "6": {
+   "lw": "tips_300",
+   "label": "Tips 2"
+  },
+  "7": {
+   "lw": "plate_flat_96",
+   "label": "Eluate"
+  },
+  "8": {
+   "lw": "reservoir_60",
+   "label": "Water"
+  }
+ },
+ "contents": [
+  {
+   "pos": "4",
+   "wells": "A1",
+   "liquid": "Aqueous",
+   "vol": 40000
+  },
+  {
+   "pos": "4",
+   "wells": "B1",
+   "liquid": "Aqueous with Detergent",
+   "vol": 40000
+  },
+  {
+   "pos": "4",
+   "wells": "C1",
+   "liquid": "Aqueous",
+   "vol": 40000
+  },
+  {
+   "pos": "4",
+   "wells": "D1",
+   "liquid": "Magnetic Beads",
+   "vol": 40000
+  },
+  {
+   "pos": "4",
+   "wells": "E1",
+   "liquid": "Ethanol 70%",
+   "vol": 40000
+  },
+  {
+   "pos": "8",
+   "wells": "A1",
+   "liquid": "Aqueous",
+   "vol": 20000
+  }
+ ],
+ "steps": [
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "A1",
+   "toPos": "3",
+   "toWells": "A1:H12",
+   "vol": 17
+  },
+  {
+   "type": "shake",
+   "pos": "3",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 3
+  },
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "B1",
+   "toPos": "3",
+   "toWells": "A1:H12",
+   "vol": 17
+  },
+  {
+   "type": "shake",
+   "pos": "3",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 0.25
+  },
+  {
+   "type": "pause",
+   "message": "Wait 2 min 45 s"
+  },
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "C1",
+   "toPos": "3",
+   "toWells": "A1:H12",
+   "vol": 24
+  },
+  {
+   "type": "shake",
+   "pos": "3",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 0.75
+  },
+  {
+   "type": "pause",
+   "message": "Wait 4 min 15 s"
+  },
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "D1",
+   "toPos": "3",
+   "toWells": "A1:H12",
+   "vol": 104
+  },
+  {
+   "type": "shake",
+   "pos": "3",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 0.75
+  },
+  {
+   "type": "pause",
+   "message": "Wait 2 min 15 s"
+  },
+  {
+   "type": "move",
+   "fromPos": "3",
+   "toPos": "5"
+  },
+  {
+   "type": "pause",
+   "message": "Wait on the magnet 2 min; discard the supernatant"
+  },
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "E1",
+   "toPos": "5",
+   "toWells": "A1:H12",
+   "vol": 180
+  },
+  {
+   "type": "distribute",
+   "fromPos": "4",
+   "fromWells": "E1",
+   "toPos": "5",
+   "toWells": "A1:H12",
+   "vol": 180
+  },
+  {
+   "type": "move",
+   "fromPos": "5",
+   "toPos": "3"
+  },
+  {
+   "type": "distribute",
+   "fromPos": "8",
+   "fromWells": "A1",
+   "toPos": "3",
+   "toWells": "A1:H12",
+   "vol": 30
+  },
+  {
+   "type": "shake",
+   "pos": "3",
+   "temp": 0,
+   "rpm": 1000,
+   "minutes": 3
+  },
+  {
+   "type": "pause",
+   "message": "Wait 3 min"
+  },
+  {
+   "type": "pause",
+   "message": "Please spin for 2 mins, max speed"
+  },
+  {
+   "type": "move",
+   "fromPos": "3",
+   "toPos": "5"
+  },
+  {
+   "type": "transfer",
+   "fromPos": "5",
+   "fromWells": "A1:H12",
+   "toPos": "7",
+   "toWells": "A1:H12",
+   "vol": 28
+  }
+ ]
+}
