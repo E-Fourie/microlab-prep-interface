@@ -7,21 +7,22 @@
    :root block — this file only owns the common baseline.
    ═══════════════════════════════════════════════════════ */
 :root {
-  --bg: #f6f4ee;
+  --bg: #f7f8f8;
   --surface: #ffffff;
   --ink: #1c2b28;
   --ink-muted: #5b6b67;
-  --accent: #0a4f47;
-  --accent-light: #e3efec;
-  --accent2: #0f6e63;
+  --accent: #98c6c3;
+  --accent-ink: #1f4d49;   /* accent-coloured text on a light background (the fill colour is too pale to read as text) */
+  --accent-light: #e9f3f2;
+  --accent2: #78aeaa;
   --border: #dcd9cd;
   --danger: #a5433b;
   --danger-light: #fbeceb;
   --good: #1c6b3f;
   --good-light: #e6f3ea;
   /* Money in and out: credits and charges on invoices and ledgers. */
-  --credit: #0a4f47;
-  --credit-light: #e3efec;
+  --credit: #1f4d49;
+  --credit-light: #e9f3f2;
   --debit: #a5433b;
   --debit-light: #fbeceb;
   --chart-neutral: #3b6ef5;
@@ -62,7 +63,7 @@
   --glass-shadow: 0 1px 1px rgba(28, 43, 40, 0.02), 0 8px 20px -10px rgba(28, 43, 40, 0.14);
   --glass-shadow-sm: 0 1px 1px rgba(28, 43, 40, 0.02), 0 4px 12px -6px rgba(28, 43, 40, 0.09);
   --shadow-card: 0 1px 2px rgba(28, 43, 40, .04), 0 6px 18px -10px rgba(28, 43, 40, .16);
-  --shadow-card-hover: 0 2px 4px rgba(28, 43, 40, .05), 0 14px 28px -14px rgba(10, 79, 71, .28);
+  --shadow-card-hover: 0 2px 4px rgba(28, 43, 40, .05), 0 14px 28px -14px rgba(31, 77, 73, .22);
   --radius-btn: 10px;
   --radius-card: 14px;
   --hover-row: #f7f6f0;
@@ -74,9 +75,9 @@
   /* Fill shared by every primary button and active control: a very subtle
      top-to-bottom shade of the accent green, plus a small flat shadow for
      lift. Change it here and it lands everywhere. */
-  --btn-bg: linear-gradient(180deg, #0c5a51, #0a4f47);
-  --btn-shadow: 0 1px 2px rgba(10, 79, 71, .22);
-  --btn-shadow-hover: 0 3px 8px -3px rgba(10, 79, 71, .38);
+  --btn-bg: linear-gradient(180deg, #a3cecb, #98c6c3);
+  --btn-shadow: 0 1px 2px rgba(31, 77, 73, .22);
+  --btn-shadow-hover: 0 3px 8px -3px rgba(31, 77, 73, .30);
 
   /* Set by /shared/nav.js once the global nav has measured itself, so
      any page that needs to offset fixed/sticky elements below the nav

@@ -141,27 +141,35 @@ VIEWS.builder = {
     const hint = B.selSlot === HHS_POS ? 'Heater-Shaker (HHS): plates only.' : RESERVOIR_POS.includes(B.selSlot) ? 'This position also fits the 60 mL reagent reservoir rack and the 50 mL tube carrier.' : '';
     const varRows = (p.variables || []).map((v, i) => `<div class="fields">${field('Name (used in steps)', `<input data-v="${i}" data-f="name" value="${esc(v.name)}" maxlength="24">`)}${field('Question to ask', `<input data-v="${i}" data-f="label" value="${esc(v.label)}" maxlength="60">`)}${field('Default', `<input type="number" step="any" data-v="${i}" data-f="default" value="${esc(v.default)}">`)}${field('Smallest', `<input type="number" step="any" data-v="${i}" data-f="min" value="${esc(v.min)}">`)}${field('Largest', `<input type="number" step="any" data-v="${i}" data-f="max" value="${esc(v.max)}">`)}${field('Unit', `<input data-v="${i}" data-f="unit" value="${esc(v.unit)}" maxlength="12">`)}<div class="field" style="justify-content:flex-end"><button class="btn-ghost" data-delv="${i}">Remove</button></div></div>`).join('');
     const varsPanel = `<div class="panel"><div class="card-head"><h2>Variables (optional)</h2></div><div class="small muted">A variable is a number the person running the protocol is asked for each time, such as how much bead reagent to add. Declare it here, then pick it in a step's number box instead of typing a number. The simulation uses the default.</div>${varRows || '<div class="small muted">None. Every number in the steps is fixed.</div>'}<div><button class="btn-ghost" id="addv">+ Add variable</button></div></div>`;
-    el.innerHTML = `<div class="stack">
-      <div class="page-head"><div><h1>Build &amp; <em>simulate</em></h1><p class="subtitle">Lay out the deck, add steps, and the builder tells you how to load the machine and flags problems before anything runs. Press ▶ to watch it play out on the deck map.</p></div></div>
-      <div class="panel"><div class="grid cols-2">${field('Name', `<input id="pname" value="${esc(p.name)}">`)}${field('Description', `<input id="pdesc" value="${esc(p.description)}">`)}</div>
-        <div class="row"><button class="btn" id="save">Save</button><div style="min-width:210px"><select id="exSel" aria-label="Load an example"><option value="">Load example…</option><option value="example_plasmid_normalisation.json">Plasmid normalisation</option><option value="example_gripper_hhs_magnet.json">Gripper: HHS and magnet</option><option value="example_bead_cleanup_variable.json">Bead clean-up with variables</option></select></div><button class="btn-ghost" id="expPy">Export .py</button><button class="btn-ghost" id="expJson">Export .json</button><span class="spacer"></span></div></div>
-      <div class="grid cols-2">
-        <div class="panel"><div class="card-head"><h2>1 · Deck</h2><span class="small muted">Hover for what to load · click to edit</span></div>
+    const posPanel = `<div class="pos-panel stack-sm"><h3>Position ${esc(B.selSlot)}${B.selSlot === HHS_POS ? ' · Heater-Shaker (HHS)' : ''}</h3>${hint ? `<div class="small muted">${hint}</div>` : ''}
+          ${field('Labware', `<select id="lw"><option value="">- empty -</option>${lwOpts}</select>`)}
+          ${sel ? `${field('Label', `<input id="lwlabel" value="${esc(sel.label || '')}">`)}${!['tips', 'magnet'].includes(LIB[sel.lw].kind) ? `<h3>Starting contents</h3>${LIB[sel.lw].kind === 'reservoirs' ? '<div class="small muted">Each slot holds one liquid. Which liquid sits in which slot matters, so load them exactly as shown.</div>' : ''}${contents || '<div class="small muted">Empty.</div>'}<div><button class="btn-ghost" id="addc">+ Add liquid</button></div>` : ''}` : ''}</div>`;
+    const n = r.events.length, panelHead = (num, title) => `<div class="pb-head"><span class="pb-num">${num}</span><h2>${title}</h2></div>`;
+    el.innerHTML = `<div class="stack pb">
+      <header class="pb-header"><div class="machine-badge">For the Hamilton MLPrep</div><h1>Prep <em>Builder</em></h1>
+        <p class="subtitle">Lay out the deck, add the steps, and check the whole protocol before it goes anywhere. Press Simulate to watch it play out, then save it or download it. Nothing runs until someone at the machine presses Run.</p></header>
+      <div class="panel">${panelHead(1, 'Name your protocol')}<div class="grid cols-2">${field('Name', `<input id="pname" value="${esc(p.name)}">`)}${field('Description (optional)', `<input id="pdesc" value="${esc(p.description)}">`)}</div>
+        <div class="row"><div style="min-width:210px"><select id="exSel" aria-label="Load an example"><option value="">Load example…</option><option value="example_plasmid_normalisation.json">Plasmid normalisation</option><option value="example_gripper_hhs_magnet.json">Gripper: HHS and magnet</option><option value="example_bead_cleanup_variable.json">Bead clean-up with variables</option></select></div><button class="btn-ghost" id="newb">Start again</button></div></div>
+      <div class="panel">${panelHead(2, 'Lay out the deck and simulate')}
+        <div class="deck-grid"><div>
           <div class="deck-wrap" id="deck">${deckSVG(builderSlots(), { sel: B.selSlot })}</div>
           <div class="legend"><span style="--c:#3b6ef5">tips to use</span><span style="--c:var(--debit)">source (aspirating)</span><span style="--c:var(--chart-neutral)">destination</span></div>
-          <div class="stack-sm"><h3>Position ${esc(B.selSlot)}${B.selSlot === HHS_POS ? ' · Heater-Shaker (HHS)' : ''}</h3>${hint ? `<div class="small muted">${hint}</div>` : ''}
-          ${field('Labware', `<select id="lw"><option value="">- empty -</option>${lwOpts}</select>`)}
-          ${sel ? `${field('Label', `<input id="lwlabel" value="${esc(sel.label || '')}">`)}${!['tips', 'magnet'].includes(LIB[sel.lw].kind) ? `<h3>Starting contents</h3>${LIB[sel.lw].kind === 'reservoirs' ? '<div class="small muted">Each slot holds one liquid. Which liquid sits in which slot matters, so load them exactly as shown.</div>' : ''}${contents || '<div class="small muted">Empty.</div>'}<div><button class="btn-ghost" id="addc">+ Add liquid</button></div>` : ''}` : ''}</div></div>
-        ${varsPanel}
-        <div class="panel"><div class="card-head"><h2>2 · Steps</h2><div class="row">${Object.keys(STEP_DEFAULTS).map(t => `<button class="btn-ghost sm" data-add="${t}" style="text-transform:capitalize">+ ${t}</button>`).join('')}</div></div>
-          <div class="steps">${p.steps.map(stepCard).join('') || '<div class="empty">No steps yet. Add one above.</div>'}</div></div></div>
-      <div class="panel"><div class="card-head"><h2>3 · Check, load guide &amp; simulate</h2>
-        <div class="row"><button class="btn" id="play" ${p.steps.length ? '' : 'disabled'}>${B.timer ? '⏸ Pause' : '▶ Simulate'}</button><button class="btn-ghost" id="stepb" ${p.steps.length ? '' : 'disabled'}>Step ›</button><button class="btn-ghost" id="rst">Reset</button></div></div>
-        <div class="issues">${ev ? `<div class="issue info"><span class="ico">${B.idx + 1}</span><div><b>${esc(ev.text)}</b></div></div>` : ''}
-        ${r.errors.map(e => `<div class="issue error"><span class="ico">✕</span><div><b>${e.step != null ? 'Step ' + (e.step + 1) : 'Setup'}</b>${esc(e.msg)}</div></div>`).join('')}
-        ${r.warnings.map(e => `<div class="issue warn"><span class="ico">!</span><div><b>${e.step != null ? 'Step ' + (e.step + 1) : 'Setup'}</b>${esc(e.msg)}</div></div>`).join('')}
-        ${!r.errors.length && p.steps.length ? '<div class="issue ok"><span class="ico">✓</span><div><b>No errors.</b>The plan fits the deck, tips and volumes.</div></div>' : ''}</div>
-        <h3>How to load the machine</h3><div class="list">${loadChecks || '<div class="muted small">Add steps to see the load guide.</div>'}</div></div></div>`;
+          <div class="small muted pb-hint">Hover a position to see what to load there, click it to edit.</div>
+          <div class="row sim-row"><button class="btn" id="play" ${n ? '' : 'disabled'}>${B.timer ? 'Pause' : 'Simulate'}</button><button class="btn-ghost" id="backb" aria-label="Back one step" ${B.idx < 0 ? 'disabled' : ''}>Back</button><button class="btn-ghost" id="stepb" aria-label="Forward one step" ${!n || B.idx >= n - 1 ? 'disabled' : ''}>Next</button><button class="btn-ghost" id="rst" ${B.idx < 0 && !B.timer ? 'disabled' : ''}>Reset</button>
+            <label class="speed"><span>Speed</span><select id="speedSel" aria-label="Playback speed">${[[1400, 'Slow'], [700, 'Normal'], [250, 'Fast']].map(([v, l]) => `<option value="${v}" ${B.speed === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+          ${ev ? `<div class="now" aria-live="polite"><b>${B.idx + 1}.</b> ${esc(ev.text)}</div>` : ''}
+        </div><div class="deck-side">${posPanel}
+          <div class="issues">
+          ${r.errors.map(e => `<div class="issue error"><span class="ico">✕</span><div><b>${e.step != null ? 'Step ' + (e.step + 1) : 'Setup'}</b>${esc(e.msg)}</div></div>`).join('')}
+          ${r.warnings.map(e => `<div class="issue warn"><span class="ico">!</span><div><b>${e.step != null ? 'Step ' + (e.step + 1) : 'Setup'}</b>${esc(e.msg)}</div></div>`).join('')}
+          ${!r.errors.length && p.steps.length ? '<div class="issue ok"><span class="ico">✓</span><div><b>No errors.</b>The plan fits the deck, tips and volumes.</div></div>' : ''}</div>
+          <div class="stack-sm"><h3>How to load the machine</h3><div class="list">${loadChecks || '<div class="muted small">Add steps to see the load guide.</div>'}</div></div>
+        </div></div></div>
+      ${varsPanel.replace('<div class="card-head"><h2>Variables (optional)</h2></div>', panelHead('2b', 'Variables (optional)'))}
+      <div class="panel">${panelHead(3, 'Add the steps')}<div class="row" role="group" aria-label="Add a step">${Object.keys(STEP_DEFAULTS).map(t => `<button class="btn-ghost" data-add="${t}">${t === 'distribute' ? 'Add reagent' : 'Add ' + t}</button>`).join('')}</div>
+        <div class="steps">${p.steps.map(stepCard).join('') || '<div class="empty">No steps yet. Add one above.</div>'}</div></div>
+      <div class="panel">${panelHead(4, 'Save it or download it')}<div class="small muted">Saving puts it in your protocols, ready to send to the Prep. Downloads give you the protocol file or a Python script.</div>
+        <div class="row"><button class="btn" id="save">Save</button><button class="btn-ghost" id="expJson">Download protocol (.json)</button><button class="btn-ghost" id="expPy">Export .py</button></div></div></div>`;
     attachTips($('#deck'), pos => {
       const d = p.deck[pos]; if (d && LIB[d.lw]?.kind === 'magnet') return tipHTML(pos, 'magnet', d.label, [], ['Movable magnet: the gripper moves a plate onto it. Nothing is loaded here at the start.']); if (!d) return tipHTML(pos, null, '', [], pos === HHS_POS ? ['Heater-Shaker: plates only.'] : RESERVOIR_POS.includes(pos) ? ['Fits a 60 mL reagent reservoir rack.'] : []);
       const L = LIB[d.lw], need = r.load.liquids.filter(l => l.pos === pos), lines = [], t = r.load.tips.find(x => x.pos === pos);
@@ -211,6 +219,12 @@ VIEWS.builder = {
     $('#play').onclick = () => B.timer ? (this.stop(), this.render()) : this.play();
     $('#stepb').onclick = () => { this.stop(); this.advance(); };
     $('#rst').onclick = () => { this.stop(); B.idx = -1; this.render(); };
+    $('#backb').onclick = () => { this.stop(); if (B.idx >= 0) B.idx--; this.render(); };
+    $('#speedSel').onchange = e => { B.speed = +e.target.value || 700; };
+    $('#newb').onclick = async () => {
+      if (this.dirty() && !await confirmModal({ title: 'Start again?', ok: 'Discard my protocol', danger: true, body: '<p>This clears the protocol you are building. Unsaved changes will be lost.</p>' })) return;
+      this.stop(); B.proto = newProto(); B.file = null; B.snap = JSON.stringify(B.proto); B.selSlot = '1'; this.changed();
+    };
     $('#save').onclick = async () => {
       const name = B.file || fileSafe(p.name) + '.json';
       try { B.file = await putLocal(name, JSON.stringify(embedLw(p), null, 2)); B.snap = JSON.stringify(p); toast(`Saved “${p.name}”`); await loadLibrary(true); S.libKey = ''; } catch (e) { toast(fmtErr(e), true); }

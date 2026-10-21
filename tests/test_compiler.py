@@ -280,6 +280,19 @@ class HeadRules(Base):
         r = self.c(spec([xfer(s="A1", d="B1", dst="6")], deck=deck))
         self.assertEqual(r["steps"][0]["channelSelection"], "TwoChannel")
 
+    def test_distribute_from_a_plate_well_keeps_one_tip(self):
+        deck = {"2": {"lw": "tips_300"}, "3": {"lw": "plate_deep"}, "6": {"lw": "plate_384"}}
+        step = {"type": "distribute", "fromPos": "3", "fromWells": "A1", "toPos": "6", "toWells": "B5:B8", "vol": 2.5}
+        r = self.c(spec([step], deck=deck))
+        self.assertEqual(len(r["steps"]), 1)
+        st = r["steps"][0]
+        self.assertFalse(st["newTipsEachTransfer"])
+        self.assertEqual(len(st["sources"][0]["addresses"]), 4)
+        self.assertEqual(len(st["destinations"][0]["addresses"]), 4)
+        self.assertEqual({(a["row"], a["column"]) for a in st["sources"][0]["addresses"]}, {(1, 1)})
+        t = self.c(spec([{"type": "transfer", "fromPos": "3", "fromWells": "A1:A2", "toPos": "6", "toWells": "B5:B6", "vol": 2.5}], deck=deck))
+        self.assertTrue(t["steps"][0]["newTipsEachTransfer"])   # an ordinary transfer is unchanged
+
     def test_pcr_plate_cannot_go_onto_the_ring_stand_magnet(self):
         deck = dict(DECK, **{"6": {"lw": "plate_pcr"}})
         self.fails(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck), "magnet")
@@ -368,7 +381,7 @@ class Errors(Base):
         self.fails(spec([{"type": "pause", "message": "x", "minutes": 0}]), "minutes")
 
     def test_unsupported_transfers(self):
-        self.fails(spec([{"type": "distribute", "fromPos": "3", "fromWells": "A1", "toPos": "7", "toWells": "A1:C1", "vol": 5}]), "distribute")
+        self.fails(spec([{"type": "distribute", "fromPos": "3", "fromWells": "A1:B1", "toPos": "7", "toWells": "A1:H1", "vol": 5}]), "one source well")
         self.fails(spec([{"type": "transfer", "fromPos": "3", "fromWells": "A1", "toPos": "4", "toWells": "A1", "vol": 5}]), "step 1")
 
     def test_reservoir_slot_without_liquid(self):

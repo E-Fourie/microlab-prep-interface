@@ -375,14 +375,18 @@ class _Compiler:
                 self.apply_opts(s, rec)
                 self.emit(rec, i, ("add", sh, slot, dh, vol, self.opts(s)), wells)
             return
-        if distribute:
-            self.fail(i, "distribute from a plate or tubes (one source well to many) cannot be expressed; use transfer with equal well counts")
         if skind not in ("plate", "tubes") or dkind not in ("plate", "tubes"):
             self.fail(i, f"cannot transfer from {skind} to {dkind}")
         srows, scols = self.dims(self.spec["deck"][sh]["lw"])
         src = expand_wells(s["fromWells"], srows, scols, "source")
         dst = expand_wells(s["toWells"], drows, dcols, "destination")
-        if len(src) != len(dst):
+        if distribute:
+            # The Prep cannot aspirate once and multi-dispense from a plate, so one source well to many is one transfer step
+            # that keeps its tip (newTipsEachTransfer False): one aspirate per destination, a single tip for the whole step.
+            if len(src) != 1:
+                self.fail(i, "distribute from a plate or tubes needs exactly one source well")
+            src = src * len(dst)
+        elif len(src) != len(dst):
             self.fail(i, "transfer needs equal numbers of source and destination wells")
         if self.channels == "EightChannel" and skind == dkind == "plate":
             for role, wells in (("source", src), ("destination", dst)):
@@ -390,18 +394,18 @@ class _Compiler:
                     self.fail(i, f"the {role} wells are not whole columns. Plate-to-plate transfers on 96-well plates use the 8-channel head, which can only "
                                  "pipette whole columns (A-H of one column, e.g. A1:H1); the Prep refuses any other pattern. Select full columns, or put a 384-well plate "
                                  "on the deck to use the 2-channel head")
-        tips = {self.take(vol, i) for _ in src}
+        tips = {self.take(vol, i) for _ in (src[:1] if distribute else src)}
         if len(tips) != 1:
             self.fail(i, "tips would come from different kinds of rack inside one step")
         a, d = copy.deepcopy(TRANSFER["aspirateSettings"]), copy.deepcopy(TRANSFER["dispenseSettings"])
         a["transferVolume"] = d["transferVolume"] = _num(vol)
-        rec = {"channelSelection": self.channels, "tipLabwareGroupId": tips.pop(), "liquidType": self.liquid_at(sh, src), "newTipsEachTransfer": True, "mixBeforeAspirate": False,
+        rec = {"channelSelection": self.channels, "tipLabwareGroupId": tips.pop(), "liquidType": self.liquid_at(sh, src), "newTipsEachTransfer": not distribute, "mixBeforeAspirate": False,
                "mixAfterDispense": False, "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste", "dispenseToWaste": False,
                "aspirateSettings": a, "dispenseSettings": d, "sources": [{"position": int(sh), "addresses": _addr(src)}],
                "destinations": [{"position": int(dh), "addresses": _addr(dst)}], "customizeLiquid": False, "customLiquidSettings": None,
                "stepType": "TransferSamplesStep", "id": 0, "name": "Transfer", "stepOrder": 0, "disabled": False}
         self.apply_opts(s, rec)
-        self.emit(rec, i, ("xfer", sh, dh, vol, self.opts(s)), dst)
+        self.emit(rec, i, ("xfer", sh, dh, vol, self.opts(s), distribute), dst)
 
     def step_mix(self, s, i):
         h, rows, cols, kind = self.plate(s["pos"], i, "mix wells")
