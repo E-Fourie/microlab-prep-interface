@@ -832,3 +832,9 @@ VIEWS.instrument = {
   try { S.cfg = await local('GET', '/config'); } catch (e) { toast(fmtErr(e.detail || e), true); }
   mount(); pollStatus(); setInterval(pollStatus, 6000);
 })();
+
+// Easter egg: click the app name five times quickly.
+(() => {
+  const el = document.querySelector('.brand span'); let n = 0, t = 0;
+  if (el) el.addEventListener('click', () => { const now = Date.now(); n = now - t < 1500 ? n + 1 : 1; t = now; if (n === 5) { n = 0; toast('Made with care by E-Fourie 🧪'); } });
+})();
