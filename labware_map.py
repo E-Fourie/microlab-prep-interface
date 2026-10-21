@@ -92,10 +92,18 @@ def resolve_key(catalogue, key, mapping=None):
 OFFERED_BUILTIN = ("reservoir_60", "magnet")
 
 
+_MAGNET_ALIGN = re.compile(r"_Magnet$|_RingStand$")
+
+
+def magnet_alignment(o):
+    """The alignment a plate must list to sit on catalogue magnet `o` (its own SiteAlignment_*_Magnet / _RingStand), or None."""
+    return next((a for a in (o.get("siteAlignments") or []) if _MAGNET_ALIGN.search(a)), None)
+
+
 def builder_defs(catalogue=None):
     """What the Builder may offer, from the Prep's catalogue only:
     ({c_<id>: definition}, {built-in key: catalogue display name}). Plates, tip racks and 24-position tube racks are c_<id> entries;
-    the magnet and the 5 x 60 mL reservoir are the two built-in keys, labelled with their catalogue names."""
+    the magnet and the 5 x 60 mL reservoir are the two built-in keys, labelled with their catalogue names. 96-well magnets are c_<id> entries of kind 'magnet'."""
     cat = catalogue or harvest()
     builtin = {}
     for k in OFFERED_BUILTIN:
@@ -113,6 +121,13 @@ def builder_defs(catalogue=None):
             out[f"c_{o['id']}"] = {"label": label, "kind": "tips", "rows": r[0], "cols": r[1], "tipVol": o["volume"]}
         elif c == "carrier" and r == (4, 6):
             out[f"c_{o['id']}"] = {"label": label, "kind": "tubes", "rows": r[0], "cols": r[1], "cap": 1500}
+    # movable magnets besides the built-in `magnet` (the Ring Stand): every 96-well magnet that some 8 x 12 plate lists an alignment for.
+    # `align` is the alignment a plate must list to sit on it; the 24-tube magnets fit no plate, so they are left out.
+    for o in cat.values():
+        al = magnet_alignment(o) if o["classification"] == "magnet" else None
+        if al and any(p["classification"] == "plate" and (p["rows"], p["columns"]) == (8, 12) and al in (p.get("siteAlignments") or []) for p in cat.values()):
+            label = str(o.get("displayName") or o["name"]).strip()
+            out[f"c_{o['id']}"] = {"label": label if len(label) <= 60 else label[:59] + "…", "kind": "magnet", "rows": 1, "cols": 1, "align": al}
     return out, builtin
 
 

@@ -310,7 +310,8 @@
     const list = text => { try { return expandWells(text, null).map(parseWell); } catch (e) { return []; } };
     const whole = ws => ws.length > 0 && ws.length % 8 === 0 && ws.every(([r, c], n) => r === n % 8 && c === ws[n - (n % 8)][1]);
     const plateId = k => (Catalogue.BUILTIN[k] ? Catalogue.BUILTIN[k].id : CATALOGUE_KEY.test(k) ? +k.slice(2) : null);
-    const misfit = k => { const id = plateId(k); return id !== null && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(Catalogue.MAGNET_ALIGNMENT); };
+    const magnetAlign = k => (lib[k] && lib[k].align) || (k === 'magnet' ? Catalogue.MAGNET_ALIGNMENT : null); // the alignment a plate must list to sit on magnet k
+    const misfit = (k, m) => { const id = plateId(k), al = magnetAlign(m); return id !== null && !!al && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(al); };
     spec.steps.forEach((s, i) => {
       if (s.type === 'transfer' && eight && kind(s.fromPos) === 'plate' && kind(s.toPos) === 'plate') {
         [['Source', s.fromWells], ['Destination', s.toWells]].forEach(([role, text]) => {
@@ -320,8 +321,8 @@
         occ[HHS_POS] = occ[s.pos]; delete occ[s.pos];
       } else if (s.type === 'move' && occ[s.fromPos] !== undefined && occ[s.toPos] === undefined) {
         const key = deck[occ[s.fromPos]].lw, to = deck[s.toPos];
-        if (to && lib[to.lw] && lib[to.lw].kind === 'magnet' && kind(s.fromPos) === 'plate' && misfit(key))
-          out.push({ step: i, msg: `${lib[key].label} does not fit the ${lib[to.lw].label}: the Prep only accepts plates that list the magnet's alignment (${Catalogue.MAGNET_ALIGNMENT}). Use a compatible plate, such as the 96 deep-well plate.` });
+        if (to && lib[to.lw] && lib[to.lw].kind === 'magnet' && kind(s.fromPos) === 'plate' && misfit(key, to.lw))
+          out.push({ step: i, msg: `${lib[key].label} does not fit the ${lib[to.lw].label}: the Prep only accepts plates that list the magnet's alignment (${magnetAlign(to.lw)}). Pick a different magnet (the Prep's own catalogue has several) or a compatible plate such as the 96 deep-well plate.` });
         occ[s.toPos] = occ[s.fromPos]; delete occ[s.fromPos];
       }
     });
@@ -342,7 +343,7 @@
     const lwAt = pos => (occ[pos] != null ? lib[p.deck[occ[pos]].lw] : undefined);
     p.contents.forEach((c, i) => {
       const lw = lwAt(c.pos);
-      if (!lw) return errors.push({ step: null, msg: `Contents row ${i + 1}: ${p.deck[c.pos] && p.deck[c.pos].lw === 'magnet' ? `position ${c.pos} is a magnet, so it starts empty. Put the plate somewhere else and add a Move step` : `position ${c.pos} has no labware`}.` });
+      if (!lw) return errors.push({ step: null, msg: `Contents row ${i + 1}: ${p.deck[c.pos] && lib[p.deck[c.pos].lw] && lib[p.deck[c.pos].lw].kind === 'magnet' ? `position ${c.pos} is a magnet, so it starts empty. Put the plate somewhere else and add a Move step` : `position ${c.pos} has no labware`}.` });
       try {
         expandWells(c.wells, lw).forEach(w => {
           const k = keyOf(c.pos, w);
@@ -394,7 +395,7 @@
     };
     const resolve = (pos, wellSpec, i, role) => {
       const lw = lwAt(pos);
-      if (!lw) { errors.push({ step: i, msg: p.deck[pos] && p.deck[pos].lw === 'magnet' ? `${role}: the magnet at position ${pos} has no plate on it at this point.` : `${role}: position "${pos}" has no labware.` }); return null; }
+      if (!lw) { errors.push({ step: i, msg: p.deck[pos] && lib[p.deck[pos].lw] && lib[p.deck[pos].lw].kind === 'magnet' ? `${role}: the magnet at position ${pos} has no plate on it at this point.` : `${role}: position "${pos}" has no labware.` }); return null; }
       if (lw.kind === 'tips') { errors.push({ step: i, msg: `${role}: position ${pos} is a tip rack.` }); return null; }
       try { return { lw, wells: expandWells(wellSpec, lw), pos, id: occ[pos] }; } catch (e) { errors.push({ step: i, msg: `${role}: ${e.message}` }); return null; }
     };
