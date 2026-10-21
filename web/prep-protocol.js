@@ -5,7 +5,7 @@
 // A protocol ("spec") is plain data:
 //   { name, description, deck: { "1": { lw, label } ... },
 //     contents: [{ pos, wells, liquid, vol }],
-//     steps: [ transfer | distribute (shown as "Add reagent") | mix | discard | shake | pause | move ] }
+//     steps: [ transfer | distribute (shown as "Add reagent") | mix | discard | shake | pause (optional minutes: a timed pause) | move ] }
 //     (every pipetting step may carry channels: 8 to use the 8-channel head (tips are picked up a rack column at a time) and tips: 'each' (fresh
 //     tips for every column) or 'step' (one set for the whole step); tips are never reused, and when the racks run out the machine
 //     pauses for one to be refilled;
@@ -255,7 +255,12 @@
       else if (s.type === 'discard') spec.steps.push(head({ type: 'discard', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol() }));
       else if (s.type === 'shake') spec.steps.push({ type: 'shake', pos: pos(s.pos === undefined || s.pos === '' || s.pos === null ? HHS_POS : s.pos, `${p}.pos`, errors), temp: num(s.temp === undefined ? 0 : s.temp, `${p}.temp`, errors, { min: 0, max: LIMITS.temp }), rpm: num(s.rpm, `${p}.rpm`, errors, { min: 0, max: LIMITS.rpm }), minutes: num(s.minutes, `${p}.minutes`, errors, { min: 0, max: LIMITS.minutes }) });
       else if (s.type === 'move') spec.steps.push({ type: 'move', fromPos: pos(s.fromPos, `${p}.fromPos`, errors), toPos: pos(s.toPos, `${p}.toPos`, errors) });
-      else spec.steps.push({ type: 'pause', message: text(s.message, LIMITS.message, `${p}.message`, errors, { required: true }) });
+      else {
+        const st = { type: 'pause', message: text(s.message, LIMITS.message, `${p}.message`, errors, { required: true }) };
+        // minutes: wait that long by itself and carry on (the Prep's timed pause). Without it the run waits for someone to press Continue.
+        if (s.minutes !== undefined && s.minutes !== null && s.minutes !== '') st.minutes = num(s.minutes, `${p}.minutes`, errors, { min: 0.1, max: LIMITS.minutes });
+        spec.steps.push(st);
+      }
       if (s.label !== undefined && s.label !== null && s.label !== '' && spec.steps.length > before) spec.steps[spec.steps.length - 1].label = text(s.label, LIMITS.label, `${p}.label`, errors);
     });
     if (variables.length) spec.variables = variables;
@@ -461,7 +466,7 @@
         else if (!movable(s.fromPos) && !movable(s.toPos)) errors.push({ step: i, msg: `The gripper only moves plates to or from the heater-shaker (position 1) or a magnet, so it cannot take a plate from position ${s.fromPos} to position ${s.toPos}.` });
         else if (landError(p.deck[occ[s.fromPos]].lw, s.toPos, lib)) errors.push({ step: i, msg: landError(p.deck[occ[s.fromPos]].lw, s.toPos, lib) });
         else { const id = occ[s.fromPos]; mark(ev.hl, s.fromPos, allWells(L)); occ[s.toPos] = id; delete occ[s.fromPos]; mark(ev.hl2, s.toPos, allWells(L)); }
-      } else ev.text = `Pause: ${s.message}`;
+      } else ev.text = s.minutes ? `Wait ${s.minutes} min (timed pause): ${s.message}` : `Pause: ${s.message}`;
       if (s.label) ev.text = `${s.label}: ${ev.text}`;
       // Each time the tip racks ran dry gets its own playback step: empty racks, the pause, then the step carries on with fresh ones.
       ev.reloadSnaps.forEach(sn => events.push({ i, text: `${s.label ? s.label + ': ' : ''}Out of tips. The machine pauses so you can refill the rack at position ${sn.reloaded}${sn.stillBack ? ` (it still holds ${sn.stillBack} used tips that were put back, but the machine only counts fresh ones, so take those out and put in fresh tips)` : ''}, then carries on`, hl: sn.hl, hl2: {}, reload: true, snap: sn }));

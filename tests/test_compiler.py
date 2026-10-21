@@ -359,6 +359,14 @@ class Errors(Base):
         self.assertIn("96S Super Magnet", site["labwareGroup"]["labware"]["displayName"])
         self.fails(spec(moves, deck=deck("c_43")), "does not fit the")
 
+    def test_timed_pause(self):
+        out = self.c(spec([{"type": "pause", "message": "Ice 20 min", "minutes": 20}, {"type": "pause", "message": "Press Continue"}]))
+        timed, plain = out["steps"][0], out["steps"][1]
+        self.assertEqual((timed["stepType"], timed["pauseForSetDuration"], timed["duration"]), ("PauseStep", True, 1200))
+        self.assertEqual(timed["name"], "Ice 20 min")
+        self.assertEqual((plain["pauseForSetDuration"], plain["message"]), (False, "Press Continue"))
+        self.fails(spec([{"type": "pause", "message": "x", "minutes": 0}]), "minutes")
+
     def test_unsupported_transfers(self):
         self.fails(spec([{"type": "distribute", "fromPos": "3", "fromWells": "A1", "toPos": "7", "toWells": "A1:C1", "vol": 5}]), "distribute")
         self.fails(spec([{"type": "transfer", "fromPos": "3", "fromWells": "A1", "toPos": "4", "toWells": "A1", "vol": 5}]), "step 1")

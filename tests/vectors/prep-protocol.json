@@ -5131,5 +5131,129 @@
     }
    ]
   }
+ },
+ {
+  "name": "timed pause: 20 minutes",
+  "valid": true,
+  "input": {
+   "name": "timed pause",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "Ice",
+     "minutes": 20
+    }
+   ]
+  }
+ },
+ {
+  "name": "timed pause: minutes left out waits for Continue",
+  "valid": true,
+  "input": {
+   "name": "timed pause",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "Ice"
+    }
+   ]
+  }
+ },
+ {
+  "name": "timed pause: 0 minutes is refused",
+  "valid": false,
+  "input": {
+   "name": "timed pause",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "Ice",
+     "minutes": 0
+    }
+   ]
+  }
+ },
+ {
+  "name": "timed pause: minutes must be a number",
+  "valid": false,
+  "input": {
+   "name": "timed pause",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "Ice",
+     "minutes": "abc"
+    }
+   ]
+  }
+ },
+ {
+  "name": "timed pause: over 600 minutes is refused",
+  "valid": false,
+  "input": {
+   "name": "timed pause",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "Ice",
+     "minutes": 601
+    }
+   ]
+  }
  }
 ]

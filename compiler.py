@@ -64,7 +64,7 @@ HARDWARE = {"hhs": False, "hhc": False, "hepaUv": False, "twoChannel": False, "m
 REPORT = {"savePdf": False, "saveJson": False, "savePipettingCsv": False, "pipettingCsvPerStep": False, "reportPath": None}
 SMALL_DISPENSE = 5            # uL: at or below this a multi-dispense uses SMALL_ALIQUOT instead of the 20 uL pre/post aliquot
 SMALL_ALIQUOT = 5
-DEFAULT_PAUSE_SECONDS = 120  # only a placeholder: a message pause has pauseForSetDuration false
+DEFAULT_PAUSE_SECONDS = 120  # only a placeholder: a message pause has pauseForSetDuration false (a pause with `minutes` is a timed one)
 DEFAULT_RPM = 1000            # kept when a step only heats (shake false)
 DEFAULT_TEMP = 37             # kept when a step only shakes (heat false)
 
@@ -443,6 +443,10 @@ class _Compiler:
 
     def step_pause(self, s, i):
         self.last = None
+        if s.get("minutes"):   # the Prep's timed pause: waits `duration` seconds by itself (its message is not shown, so the text goes in the name)
+            self.records.append({"duration": _num(round(s["minutes"] * 60, 3)), "message": None, "pauseForSetDuration": True,
+                                 "stepType": "PauseStep", "id": 0, "name": s["message"][:60], "stepOrder": 0, "disabled": False})
+            return
         self.records.append({"duration": DEFAULT_PAUSE_SECONDS, "message": s["message"], "pauseForSetDuration": False,
                              "stepType": "PauseStep", "id": 0, "name": "Wait Step", "stepOrder": 0, "disabled": False})
 

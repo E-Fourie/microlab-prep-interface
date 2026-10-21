@@ -370,7 +370,11 @@ def check(data):
             spec["steps"].append({"type": "move", "fromPos": _pos(g("fromPos", MISSING), f"{p}.fromPos", errors),
                                   "toPos": _pos(g("toPos", MISSING), f"{p}.toPos", errors)})
         else:
-            spec["steps"].append({"type": "pause", "message": _text(g("message", MISSING), LIMITS["message"], f"{p}.message", errors, required=True)})
+            st = {"type": "pause", "message": _text(g("message", MISSING), LIMITS["message"], f"{p}.message", errors, required=True)}
+            mins = g("minutes", MISSING)   # a timed pause: wait this long by itself; left out, the run waits for Continue
+            if not (mins is MISSING or mins is None or mins == ""):
+                st["minutes"] = _num(mins, f"{p}.minutes", errors, 0.1, LIMITS["minutes"])
+            spec["steps"].append(st)
         lab = g("label", MISSING)
         if not (lab is MISSING or lab is None or lab == "") and len(spec["steps"]) > before:
             spec["steps"][-1]["label"] = _text(lab, LIMITS["label"], f"{p}.label", errors)
