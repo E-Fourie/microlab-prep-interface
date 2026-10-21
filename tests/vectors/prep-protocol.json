@@ -5255,5 +5255,44 @@
     }
    ]
   }
+ },
+ {
+  "name": "distribute: one plate well to many wells (one tip)",
+  "valid": true,
+  "input": {
+   "name": "x",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": "Cells"
+    },
+    "6": {
+     "lw": "plate_384",
+     "label": "Agar"
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 150
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "B5:B8",
+     "vol": 2.5
+    }
+   ]
+  }
  }
 ]
