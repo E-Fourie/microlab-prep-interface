@@ -446,10 +446,73 @@ def land_error(lw_key, pos, lib=None):
     return ""
 
 
-def validate(data):
-    """check() then the deck placement rules. Returns {valid, spec, errors: [text]}; the spec is only usable when valid."""
+_MAGNET_ALIGN = re.compile(r"_Magnet$|_RingStand$")
+_PART = re.compile(r"([A-P])(\d{1,2})(?::([A-P])(\d{1,2}))?")
+
+
+def magnet_misfit(plate_key, mapping=None):
+    """True when the plate does not list the magnet's alignment, so the Prep refuses "Move To/From Magnet" for it.
+    `mapping` is protocols/.labware-map.json ({key: catalogue name or id}), which may point "magnet" at another magnet."""
+    cat = labware_map.harvest()
+    plate, magnet = (labware_map.resolve_key(cat, k, mapping)[0] for k in (plate_key, "magnet"))
+    if not plate or plate.get("classification") != "plate" or not magnet:
+        return False
+    need = next((a for a in magnet.get("siteAlignments", []) if _MAGNET_ALIGN.search(a)), None)
+    return need is not None and need not in plate.get("siteAlignments", [])
+
+
+def _well_list(text):
+    """'A1', 'A1:H1', 'A1,B2' -> [(row, col)] 0-based, column-major per range (as the Builder does); None when unreadable."""
+    out = []
+    for part in str(text).split(","):
+        m = _PART.fullmatch(part.strip().upper())
+        if not m:
+            return None
+        r1, c1 = ROWS_ALPHA.index(m.group(1)), int(m.group(2))
+        r2, c2 = (ROWS_ALPHA.index(m.group(3)), int(m.group(4))) if m.group(3) else (r1, c1)
+        out += [(r, c - 1) for c in range(min(c1, c2), max(c1, c2) + 1) for r in range(min(r1, r2), max(r1, r2) + 1)]
+    return out
+
+
+ROWS_ALPHA = "ABCDEFGHIJKLMNOP"
+
+
+def _whole_columns(wells):
+    """True when the wells are whole columns A-H, one column at a time (what the 8-channel head can pipette)."""
+    return bool(wells) and len(wells) % 8 == 0 and all(r == n % 8 and c == wells[n - n % 8][1] for n, (r, c) in enumerate(wells))
+
+
+def head_errors(spec, mapping=None):
+    """Rules that need the deck as the steps play out (the JavaScript simulate() has them too).
+    - Plate-to-plate transfers on 96-well plates run on the 8-channel head, which can only pipette whole columns (the 2-channel head
+      is used when a 384-well plate is on the deck, and takes single wells).
+    - A plate only goes onto the magnet if it lists the magnet's alignment."""
+    lib, deck, out = lib_for(spec), spec["deck"], []
+    rows = lambda k: 16 if k == "plate_384" else lib[k].get("rows", 8)
+    eight = not any(rows(d["lw"]) > 8 for d in deck.values())
+    occ = {p: p for p, d in deck.items() if lib[d["lw"]]["kind"] != "magnet"}
+    kind = lambda p: lib[deck[occ[p]]["lw"]]["kind"] if p in occ else None
+    for i, st in enumerate(spec["steps"]):
+        t = st["type"]
+        if t == "transfer" and eight and kind(st["fromPos"]) == "plate" and kind(st["toPos"]) == "plate":
+            for role, wells in (("Source", st["fromWells"]), ("Destination", st["toWells"])):
+                if not _whole_columns(_well_list(wells) or []):
+                    out.append(f"Step {i + 1}: {role} wells {wells} are not whole columns. A plate-to-plate transfer on 96-well plates uses the 8-channel head, which can only pipette whole columns (A-H of one column, e.g. A1:H1).")
+        elif t == "shake" and st["pos"] != HHS_POS and st["pos"] in occ and HHS_POS not in occ:
+            occ[HHS_POS] = occ.pop(st["pos"])
+        elif t == "move" and st["fromPos"] in occ and st["toPos"] not in occ:
+            f, to = st["fromPos"], st["toPos"]
+            if to in deck and lib[deck[to]["lw"]]["kind"] == "magnet" and kind(f) == "plate" and magnet_misfit(deck[occ[f]]["lw"], mapping):
+                out.append(f"Step {i + 1}: {lib[deck[occ[f]]['lw']]['label']} does not fit the {lib[deck[to]['lw']]['label']}: the Prep only accepts plates that list the magnet's alignment.")
+            occ[to] = occ.pop(f)
+    return out
+
+
+def validate(data, mapping=None):
+    """check() then the deck placement rules and the head/magnet rules. Returns {valid, spec, errors: [text]}; the spec is only usable when valid."""
     spec, errs = check(data)
     out = [f"{e['path']} {e['msg']}" if e["path"] else e["msg"] for e in errs]
     if spec is not None and not errs:
         out += [e for e in (place_error(d["lw"], pos, lib_for(spec)) for pos, d in spec["deck"].items()) if e]
+        out += head_errors(spec, mapping)
     return {"valid": spec is not None and not out, "spec": spec, "errors": out}

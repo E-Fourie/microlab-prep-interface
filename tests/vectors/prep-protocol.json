@@ -328,7 +328,7 @@
      "label": ""
     },
     "6": {
-     "lw": "plate_pcr",
+     "lw": "plate_deep",
      "label": ""
     }
    },
@@ -4657,6 +4657,273 @@
      "toPos": "3",
      "toWells": "A1:C1",
      "vol": "$v"
+    }
+   ]
+  }
+ },
+ {
+  "name": "8-channel: whole column to whole column",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "4": {
+     "lw": "plate_flat_96",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1:H2",
+     "liquid": "Aqueous",
+     "vol": 50
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "3",
+     "fromWells": "A1:H1",
+     "toPos": "4",
+     "toWells": "A2:H2",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "8-channel: two whole columns",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "4": {
+     "lw": "plate_flat_96",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1:H2",
+     "liquid": "Aqueous",
+     "vol": 50
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "3",
+     "fromWells": "A1:H2",
+     "toPos": "4",
+     "toWells": "A1:H2",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "8-channel: single well plate to plate refused",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "4": {
+     "lw": "plate_flat_96",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1:H2",
+     "liquid": "Aqueous",
+     "vol": 50
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "4",
+     "toWells": "B1",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "8-channel: partial column refused",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "4": {
+     "lw": "plate_flat_96",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1:H2",
+     "liquid": "Aqueous",
+     "vol": 50
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "3",
+     "fromWells": "A1:G1",
+     "toPos": "4",
+     "toWells": "A2:G2",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "8-channel: eight wells across two columns refused",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "4": {
+     "lw": "plate_flat_96",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1:H2",
+     "liquid": "Aqueous",
+     "vol": 50
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "3",
+     "fromWells": "A1:H1",
+     "toPos": "4",
+     "toWells": "B1:H1,A2",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "2-channel (384-well on deck): single well plate to plate allowed",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "4": {
+     "lw": "plate_flat_96",
+     "label": ""
+    },
+    "5": {
+     "lw": "plate_384",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1:H2",
+     "liquid": "Aqueous",
+     "vol": 50
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "4",
+     "toWells": "B1",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "PCR plate cannot go onto the Ring Stand magnet",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "5": {
+     "lw": "magnet",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "6",
+     "toPos": "5"
     }
    ]
   }

@@ -58,6 +58,12 @@ Plate-to-plate transfers take `liquidType` from the liquid loaded in the first s
 - **Settings templates** (heights, flow-follow, multi-dispense pre/post aliquots of 20 uL, `customLiquidSettings` null, `tipReuseOption` PerSample, discard to waste,
   `newTipsEachTransfer` true for sample transfers) are copied in structure and values from the real protocol's steps. Aspirate and dispense `transferVolume` carry the
   spec volume. Pipetting heights and liquid classes were tuned for one lab's liquids and plates.
+- **8-channel pattern rule.** On the `EightChannel` head a plate-to-plate transfer must use whole columns (A-H of one column, one or more columns);
+  the Prep rejects single wells and partial columns ("Source pattern is invalid for the selected pipettor"). The checker (`spec_check.head_errors`, and
+  `simulate()` in the shared JS) and the compiler refuse them with a clear message. Put a 384-well plate on the deck to use the `TwoChannel` head, which takes single wells.
+- **Magnet compatibility.** A plate may only go onto a magnet whose alignment (`SiteAlignment_*_Magnet` / `_RingStand`) it lists in `siteAlignments`. The built-in
+  `magnet` is the Ring Stand magnet, which the PCR and flat 96 plates do not fit (the deep-well plate does); the Prep refuses such a move. Map `magnet` to another
+  catalogue magnet (e.g. the Alpaqua 96S Super Magnet) in `protocols/.labware-map.json` to use those plates.
 - **Liquid type** is always `Aqueous` (the real file uses `Magnetic Beads` for beads); the spec only has a liquid name.
 - **Compartments.** Spec slot A..E is compartment column 1..5 of the carrier (the same order as the Prep). Filled slots get `liquidVolume` = the container's capacity
   (as the real file does with `CalculateForMe`), empty ones 0 and a shared empty group.

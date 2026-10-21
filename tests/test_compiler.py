@@ -197,18 +197,18 @@ class Mapping(Base):
         self.assertEqual([s["name"] for s in r["steps"]], ["Aqueous", "Magnetic Beads"])
 
     def test_plate_to_plate(self):
-        r = self.c(spec([xfer(s="A1:B1", d="C1:D1")]))
+        r = self.c(spec([xfer(s="A1:H1", d="A3:H3")]))
         (s,) = r["steps"]
         self.assertEqual(s["stepType"], "TransferSamplesStep")
         self.assertFalse(s["dispenseToWaste"])
-        self.assertEqual([a["row"] for a in s["sources"][0]["addresses"]], [1, 2])
-        self.assertEqual([a["row"] for a in s["destinations"][0]["addresses"]], [3, 4])
+        self.assertEqual([a["row"] for a in s["sources"][0]["addresses"]], list(range(1, 9)))
+        self.assertEqual([a["column"] for a in s["destinations"][0]["addresses"]], [3] * 8)
         self.assertEqual((s["sources"][0]["position"], s["destinations"][0]["position"]), (3, 7))
-        self.assertEqual(len(self.c(spec([xfer(s="A1:B1", d="A1:B1"), xfer(s="A2:B2", d="A2:B2")]))["steps"]), 1)
+        self.assertEqual(len(self.c(spec([xfer(s="A1:H1", d="A1:H1"), xfer(s="A2:H2", d="A2:H2")]))["steps"]), 1)
 
     def test_pipetting_options(self):
         o = {"aspFlow": 100, "dspFlow": 200, "aspHeight": -1, "dspHeight": 3, "tipDiscard": "rack"}
-        (s,) = self.c(spec([{**xfer(s="A1:B1", d="A1:B1"), **o}]))["steps"]
+        (s,) = self.c(spec([{**xfer(s="A1:H1", d="A1:H1"), **o}]))["steps"]
         self.assertTrue(s["customizeLiquid"])
         self.assertEqual((s["customLiquidSettings"]["asFlowRate"], s["customLiquidSettings"]["dsFlowRate"]), (100, 200))
         self.assertEqual((s["aspirateSettings"]["pipettingHeight"], s["aspirateSettings"]["pipettingHeightStartPoint"]), (-1, "FromLiquidLevel"))
@@ -219,7 +219,7 @@ class Mapping(Base):
         self.assertEqual(a["tipDiscardLocation"], "DiscardToWaste")
 
     def test_pipetting_options_stop_steps_merging(self):
-        a, b = xfer(s="A1:B1", d="A1:B1"), {**xfer(s="A2:B2", d="A2:B2"), "aspFlow": 100}
+        a, b = xfer(s="A1:H1", d="A1:H1"), {**xfer(s="A2:H2", d="A2:H2"), "aspFlow": 100}
         self.assertEqual(len(self.c(spec([a, b]))["steps"]), 2)
         self.assertNotIn("aspFlow", json.dumps(self.c(spec([a]))))
 
@@ -248,7 +248,7 @@ class Mapping(Base):
         self.assertEqual(r["steps"][0]["platePosition"], 3)
 
     def test_mix_after_transfer(self):
-        r = self.c(spec([xfer(s="A1:B1", d="A1:B1"), {"type": "mix", "pos": "7", "wells": "A1:B1", "vol": 15, "cycles": 4}]))
+        r = self.c(spec([xfer(s="A1:H1", d="A1:H1"), {"type": "mix", "pos": "7", "wells": "A1:H1", "vol": 15, "cycles": 4}]))
         (s,) = r["steps"]
         self.assertTrue(s["mixAfterDispense"])
         self.assertEqual((s["dispenseSettings"]["mixVolume"], s["dispenseSettings"]["mixCycles"]), (15, 4))
@@ -256,7 +256,36 @@ class Mapping(Base):
     def test_mix_unsupported_cases(self):
         self.fails(spec([{"type": "mix", "pos": "3", "wells": "A1", "vol": 5, "cycles": 3}]), "step 1", "mix")
         self.fails(spec([dist(), {"type": "mix", "pos": "3", "wells": "A1:H1", "vol": 5, "cycles": 3}]), "step 2", "mix")
-        self.fails(spec([xfer(s="A1:B1", d="A1:B1"), {"type": "mix", "pos": "7", "wells": "A1", "vol": 5, "cycles": 3}]), "mix")
+        self.fails(spec([xfer(s="A1:H1", d="A1:H1"), {"type": "mix", "pos": "7", "wells": "A1", "vol": 5, "cycles": 3}]), "mix")
+
+
+class HeadRules(Base):
+    def test_single_wells_refused_on_the_8_channel_head(self):
+        msg = self.fails(spec([xfer(s="A1", d="B1")]), "whole columns")
+        self.fails(spec([xfer(s="A1:G1", d="A2:G2")]), "whole columns")
+        self.fails(spec([xfer(s="A1:H1", d="B1:H1,A2")]), "whole columns")
+        self.assertIn("Step 1", msg)
+
+    def test_compiler_itself_refuses_when_the_checker_is_bypassed(self):
+        s = spec([xfer(s="A1", d="B1")])
+        orig = compiler.spec_check.validate
+        compiler.spec_check.validate = lambda d, mapping=None: {"valid": True, "spec": d, "errors": []}
+        try:
+            self.fails(s, "whole columns")
+        finally:
+            compiler.spec_check.validate = orig
+
+    def test_384_plate_uses_the_2_channel_head_and_takes_single_wells(self):
+        deck = {"2": {"lw": "tips_300"}, "3": {"lw": "plate_flat_96"}, "6": {"lw": "plate_384"}}
+        r = self.c(spec([xfer(s="A1", d="B1", dst="6")], deck=deck))
+        self.assertEqual(r["steps"][0]["channelSelection"], "TwoChannel")
+
+    def test_pcr_plate_cannot_go_onto_the_ring_stand_magnet(self):
+        deck = dict(DECK, **{"6": {"lw": "plate_pcr"}})
+        self.fails(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck), "magnet")
+        self.c(spec([{"type": "move", "fromPos": "3", "toPos": "5"}]))   # the deep-well plate fits
+        labware_map.write_map(self.dir, {"magnet": "C1p1fmpr8HAM"})        # the Alpaqua 96S Super Magnet takes a PCR plate
+        self.c(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck))
 
 
 class Errors(Base):

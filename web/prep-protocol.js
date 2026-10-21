@@ -294,6 +294,40 @@
    * { i, text, hl, hl2 (position -> wells), snap } and load says how to load the machine:
    * { tips: [{ pos, n }], liquids: [{ pos, well, slot, liquid, have, need }] }.
    */
+  /**
+   * Rules the Prep enforces that need the deck as the steps play out. Returns [{ step, msg }]. spec_check.head_errors is the Python twin.
+   * - Plate-to-plate transfers on 96-well plates run on the 8-channel head (the 2-channel head is used when a 384-well plate is on the deck and
+   *   takes single wells), and the 8-channel head can only pipette whole columns (A-H of one column).
+   * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet).
+   */
+  function headErrors(spec) {
+    const lib = libFor(spec), deck = spec.deck, out = [];
+    const rows = k => (lib[k] ? lib[k].rows : 8);
+    const eight = !Object.values(deck).some(d => rows(d.lw) > 8);
+    const occ = {};
+    Object.entries(deck).forEach(([pos, d]) => { if (lib[d.lw] && lib[d.lw].kind !== 'magnet') occ[pos] = pos; });
+    const kind = pos => (occ[pos] !== undefined ? lib[deck[occ[pos]].lw].kind : null);
+    const list = text => { try { return expandWells(text, null).map(parseWell); } catch (e) { return []; } };
+    const whole = ws => ws.length > 0 && ws.length % 8 === 0 && ws.every(([r, c], n) => r === n % 8 && c === ws[n - (n % 8)][1]);
+    const plateId = k => (Catalogue.BUILTIN[k] ? Catalogue.BUILTIN[k].id : CATALOGUE_KEY.test(k) ? +k.slice(2) : null);
+    const misfit = k => { const id = plateId(k); return id !== null && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(Catalogue.MAGNET_ALIGNMENT); };
+    spec.steps.forEach((s, i) => {
+      if (s.type === 'transfer' && eight && kind(s.fromPos) === 'plate' && kind(s.toPos) === 'plate') {
+        [['Source', s.fromWells], ['Destination', s.toWells]].forEach(([role, text]) => {
+          if (!whole(list(text))) out.push({ step: i, msg: `${role} wells ${text} are not whole columns. A plate-to-plate transfer on 96-well plates uses the 8-channel head, which can only pipette whole columns (A-H of one column, e.g. A1:H1). Select full columns.` });
+        });
+      } else if (s.type === 'shake' && s.pos !== HHS_POS && occ[s.pos] !== undefined && occ[HHS_POS] === undefined) {
+        occ[HHS_POS] = occ[s.pos]; delete occ[s.pos];
+      } else if (s.type === 'move' && occ[s.fromPos] !== undefined && occ[s.toPos] === undefined) {
+        const key = deck[occ[s.fromPos]].lw, to = deck[s.toPos];
+        if (to && lib[to.lw] && lib[to.lw].kind === 'magnet' && kind(s.fromPos) === 'plate' && misfit(key))
+          out.push({ step: i, msg: `${lib[key].label} does not fit the ${lib[to.lw].label}: the Prep only accepts plates that list the magnet's alignment (${Catalogue.MAGNET_ALIGNMENT}). Use a compatible plate, such as the 96 deep-well plate.` });
+        occ[s.toPos] = occ[s.fromPos]; delete occ[s.fromPos];
+      }
+    });
+    return out;
+  }
+
   function simulate(p) {
     if (p && p.variables && p.variables.length) { // the Builder shows the plan with each variable at its default
       const r = resolveVariables(p, {}, { defaults: true });
@@ -319,6 +353,7 @@
       } catch (e) { errors.push({ step: null, msg: `Contents row ${i + 1}: ${e.message}` }); }
     });
     Object.entries(p.deck).forEach(([pos, d]) => { const e = placeError(d.lw, pos, lib); if (e) errors.push({ step: null, msg: e }); });
+    headErrors(p).forEach(e => errors.push(e));
     const racks = Object.keys(p.deck).filter(k => lib[p.deck[k].lw] && lib[p.deck[k].lw].kind === 'tips' && k !== HHS_POS).sort().map(pos => ({ pos, tipVol: lib[p.deck[pos].lw].tipVol, used: 0, sum: 0, back: new Set(), rows: lib[p.deck[pos].lw].rows, total: lib[p.deck[pos].lw].rows * lib[p.deck[pos].lw].cols }));
     if (p.steps.some(s => s.type !== 'pause' && s.type !== 'shake' && s.type !== 'move') && !racks.length) errors.push({ step: null, msg: 'No tip rack on the deck.' });
     // Running out of tips is a warning, once per step: the machine pauses so more tips can be loaded.
@@ -456,5 +491,5 @@
     return out;
   }
 
-  return { LABWARE, CATALOGUE, CATALOGUE_KEY, LIQUIDS: Catalogue.LIQUIDS, findLiquid: Catalogue.findLiquid, libFor, resolve: resolveVariables, VAR_FIELDS, refName, STEP_TYPES, POSITIONS, HHS_POS, RESERVOIR_POS, LIMITS, wellName, parseWell, expandWells, placeError, landError, fitsHHS, slotName, check, simulate, validate };
+  return { LABWARE, CATALOGUE, CATALOGUE_KEY, LIQUIDS: Catalogue.LIQUIDS, findLiquid: Catalogue.findLiquid, libFor, resolve: resolveVariables, VAR_FIELDS, refName, STEP_TYPES, POSITIONS, HHS_POS, RESERVOIR_POS, LIMITS, wellName, parseWell, expandWells, placeError, landError, headErrors, fitsHHS, slotName, check, simulate, validate };
 });

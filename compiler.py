@@ -384,6 +384,12 @@ class _Compiler:
         dst = expand_wells(s["toWells"], drows, dcols, "destination")
         if len(src) != len(dst):
             self.fail(i, "transfer needs equal numbers of source and destination wells")
+        if self.channels == "EightChannel" and skind == dkind == "plate":
+            for role, wells in (("source", src), ("destination", dst)):
+                if not spec_check._whole_columns([(r - 1, c - 1) for r, c in wells]):
+                    self.fail(i, f"the {role} wells are not whole columns. Plate-to-plate transfers on 96-well plates use the 8-channel head, which can only "
+                                 "pipette whole columns (A-H of one column, e.g. A1:H1); the Prep refuses any other pattern. Select full columns, or put a 384-well plate "
+                                 "on the deck to use the 2-channel head")
         tips = {self.take(vol, i) for _ in src}
         if len(tips) != 1:
             self.fail(i, "tips would come from different kinds of rack inside one step")
@@ -469,6 +475,13 @@ class _Compiler:
                 self.fail(i, "from the heater-shaker a plate can only go back to its starting position or onto the magnet")
         elif not (magnet and f == home) and not (t == home):
             self.fail(i, "the Prep's move step only carries a plate between its starting position and the magnet")
+        mag_pos = t if magnet else (f if f in deck and self.kind(f) == "magnet" else None)
+        if mag_pos is not None:   # the Prep only takes a plate onto a magnet whose alignment the plate lists
+            plate_o, mag_o = self.obj[deck[home]["lw"]], self.obj[deck[mag_pos]["lw"]]
+            need = [a for a in mag_o.get("siteAlignments", []) if spec_check._MAGNET_ALIGN.search(a)]
+            if need and not set(need) & set(plate_o.get("siteAlignments", [])):
+                self.fail(i, f"{labware_map.describe(plate_o)} is not compatible with the magnet {labware_map.describe(mag_o)} (the plate does not list {', '.join(need)}). "
+                             "Use a plate that fits it, or map 'magnet' to a magnet the plate fits in protocols/.labware-map.json")
         self.records.append({"startPosition": int(home), "endPosition": int(t), "stepType": "TransportStep", "id": 0, "name": "Move To/From Magnet Step",
                              "stepOrder": 0, "disabled": False})
         del self.occ[f]
@@ -482,10 +495,10 @@ def compile_spec(spec, folder=None, values=None):
         spec, errs = spec_check.resolve(copy.deepcopy(spec), values)
         if errs:
             raise ConverterUnavailable("The protocol has variables that need a value: " + "; ".join(errs))
-    res = spec_check.validate(copy.deepcopy(spec))
+    folder = folder if folder is not None else os.path.join(HERE, "protocols")
+    res = spec_check.validate(copy.deepcopy(spec), labware_map.read_map(folder))
     if not res["valid"]:
         raise ConverterUnavailable("The protocol does not pass the Builder check: " + "; ".join(res["errors"][:3]))
-    folder = folder if folder is not None else os.path.join(HERE, "protocols")
     return _Compiler(res["spec"], folder).run()
 
 
