@@ -37,8 +37,8 @@ function builderFills(snapshot) {
 function builderSlots() {
   const p = BUILDER.proto, ev = BUILDER.res.events[BUILDER.idx], snapshot = ev ? ev.snap : BUILDER.res.initial, fills = builderFills(snapshot);
   return fixedSlots(8).map(sl => {
-    const id = snapshot.occ[sl.pos], d = id != null ? p.deck[id] : null, fixture = p.deck[sl.pos], magnet = fixture?.lw === 'magnet';
-    if (!d) return magnet ? { ...sl, lw: 'magnet', label: fixture.label } : sl;
+    const id = snapshot.occ[sl.pos], d = id != null ? p.deck[id] : null, fixture = p.deck[sl.pos], magnet = LIB[fixture?.lw]?.kind === 'magnet';
+    if (!d) return magnet ? { ...sl, lw: fixture.lw, label: fixture.label } : sl;
     const t = snapshot.tips.find(x => x.pos === sl.pos), used = new Set();
     if (t) for (let k = 0; k < t.used; k++) used.add(wellName(k % 8, Math.floor(k / 8)));
     return { ...sl, lw: d.lw, label: d.label, magnet, fills: fills[id], hl: ev?.hl[sl.pos], hl2: ev?.hl2[sl.pos], used: t ? used : undefined };
@@ -99,8 +99,8 @@ VIEWS.builder = {
     B.res = PrepCalc.prepProtocol.simulate(embedLw(p)); // the builder's own working copy (may be half filled in), not check().spec
     const r = B.res, sel = p.deck[B.selSlot];
     const lwOpt = ([k, v]) => `<option value="${k}" ${sel?.lw === k ? 'selected' : ''}>${esc(v.label)}</option>`, fits = ([k]) => !placeError(k, B.selSlot, LIB);
-    const builtin = Object.entries(B.builtin).filter(([k]) => fits([k])).map(([k, name]) => lwOpt([k, { label: name }])).join(''), added = Object.entries(hwDefs()).filter(fits).map(lwOpt).join('');
-    const lwOpts = added ? `<optgroup label="Magnet / reagent reservoir">${builtin}</optgroup><optgroup label="Prep catalogue">${added}</optgroup>` : builtin;
+    const builtin = Object.entries(B.builtin).filter(([k]) => fits([k])).map(([k, name]) => lwOpt([k, { label: name }])).join(''), catalogue = Object.entries(hwDefs()).filter(fits), added = catalogue.filter(([, v]) => v.kind !== 'magnet').map(lwOpt).join(''), magnets = catalogue.filter(([, v]) => v.kind === 'magnet').map(lwOpt).join('');
+    const lwOpts = added || magnets ? `<optgroup label="Magnet / reagent reservoir">${builtin}</optgroup>${magnets ? `<optgroup label="Magnets (Prep catalogue)">${magnets}</optgroup>` : ''}<optgroup label="Prep catalogue">${added}</optgroup>` : builtin;
     const posOpts = cur => `<option value="">position…</option>` + Array.from({ length: 8 }, (_, n) => String(n + 1)).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${esc(posLabel(p, k))}</option>`).join('');
     // a shake acts on a plate by its starting position (the Prep carries it to the heater-shaker and back); 1 is the heater-shaker itself
     const shakeOpts = cur => Array.from({ length: 8 }, (_, n) => String(n + 1)).filter(k => k === HHS_POS || k === cur || (p.deck[k] && LIB[p.deck[k].lw].kind === 'plate')).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${esc(posLabel(p, k))}</option>`).join('');
@@ -163,7 +163,7 @@ VIEWS.builder = {
         ${!r.errors.length && p.steps.length ? '<div class="issue ok"><span class="ico">✓</span><div><b>No errors.</b>The plan fits the deck, tips and volumes.</div></div>' : ''}</div>
         <h3>How to load the machine</h3><div class="list">${loadChecks || '<div class="muted small">Add steps to see the load guide.</div>'}</div></div></div>`;
     attachTips($('#deck'), pos => {
-      const d = p.deck[pos]; if (d && d.lw === 'magnet') return tipHTML(pos, 'magnet', d.label, [], ['Movable magnet: the gripper moves a plate onto it. Nothing is loaded here at the start.']); if (!d) return tipHTML(pos, null, '', [], pos === HHS_POS ? ['Heater-Shaker: plates only.'] : RESERVOIR_POS.includes(pos) ? ['Fits a 60 mL reagent reservoir rack.'] : []);
+      const d = p.deck[pos]; if (d && LIB[d.lw]?.kind === 'magnet') return tipHTML(pos, 'magnet', d.label, [], ['Movable magnet: the gripper moves a plate onto it. Nothing is loaded here at the start.']); if (!d) return tipHTML(pos, null, '', [], pos === HHS_POS ? ['Heater-Shaker: plates only.'] : RESERVOIR_POS.includes(pos) ? ['Fits a 60 mL reagent reservoir rack.'] : []);
       const L = LIB[d.lw], need = r.load.liquids.filter(l => l.pos === pos), lines = [], t = r.load.tips.find(x => x.pos === pos);
       if (t) lines.push({ text: `At least ${t.n} tips` });
       const content = well => p.contents.find(c => { try { return c.pos === pos && expandWells(c.wells, L).includes(well); } catch { return false; } });

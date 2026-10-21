@@ -350,6 +350,15 @@ class Errors(Base):
         self.fails(spec([{"type": "move", "fromPos": "3", "toPos": "6"}]), "starting position and the magnet")
         self.fails(spec([{"type": "move", "fromPos": "3", "toPos": "5"}, {"type": "move", "fromPos": "5", "toPos": "6"}]), "step 2")
 
+    def test_magnet_chosen_from_the_catalogue(self):
+        # c_42 is the Alpaqua 96S Super Magnet: the Hamilton PCR plate lists its alignment but not the Ring Stand's (c_43)
+        deck = lambda mag: dict(DECK, **{"3": {"lw": "plate_pcr"}, "5": {"lw": mag}})
+        moves = [{"type": "move", "fromPos": "3", "toPos": "5"}, {"type": "move", "fromPos": "5", "toPos": "3"}]
+        out = self.c(spec(moves, deck=deck("c_42")))
+        site = [d for d in out["deck"]["positions"] if d["position"] == 5][0]
+        self.assertIn("96S Super Magnet", site["labwareGroup"]["labware"]["displayName"])
+        self.fails(spec(moves, deck=deck("c_43")), "does not fit the")
+
     def test_unsupported_transfers(self):
         self.fails(spec([{"type": "distribute", "fromPos": "3", "fromWells": "A1", "toPos": "7", "toWells": "A1:C1", "vol": 5}]), "distribute")
         self.fails(spec([{"type": "transfer", "fromPos": "3", "fromWells": "A1", "toPos": "4", "toWells": "A1", "vol": 5}]), "step 1")

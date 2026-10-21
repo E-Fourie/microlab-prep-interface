@@ -58,7 +58,8 @@ class Catalogue(unittest.TestCase):
         self.assertEqual(len(body["liquids"]), 16)
         for key, d in body["labware"].items():
             self.assertRegex(key, r"^c_\d+$")
-            self.assertIn(d["kind"], ("plate", "tips", "tubes"))
+            self.assertIn(d["kind"], ("plate", "tips", "tubes", "magnet"))
+        self.assertEqual(sorted(k for k, d in body["labware"].items() if d["kind"] == "magnet"), ["c_39", "c_40", "c_41", "c_42", "c_43"])  # the 96-well magnets
         self.assertEqual(self.req("PUT", "/local/labware/c_brand", PLATE)[0], 405)  # nothing can be added
         self.assertEqual(self.req("DELETE", "/local/labware/c_144")[0], 405)
 

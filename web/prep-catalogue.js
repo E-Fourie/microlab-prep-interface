@@ -3,7 +3,7 @@
 // exports. Do not edit by hand. The Builder and the converter offer only this labware
 // and only these liquid classes; nothing else is accepted.
 //
-//   LABWARE   c_<Prep id> -> { label, kind, rows, cols, cap | tipVol }: plates, tip racks and 24-tube racks
+//   LABWARE   c_<Prep id> -> { label, kind, rows, cols, cap | tipVol | align }: plates, tip racks, 24-tube racks and 96-well magnets (align: the alignment a plate must list to sit on it)
 //   BUILTIN   built-in key (tips_300, plate_pcr, ...) -> the catalogue entry it is compiled to
 //   LIQUIDS   the Prep's liquid class names, in the Prep's order; LIQUID_CLASSES the same with the Prep's ids
 //   MAGNET_ALIGNMENT  the alignment the built-in magnet needs; MAGNET_FIT  plate id -> the magnet alignments that plate lists
@@ -192,7 +192,12 @@
     "c_185":{"label":"ThermoScientific Biolite, 96, MultiDish, 200 µL, Clear","kind":"plate","rows":8,"cols":12,"cap":200},
     "c_148":{"label":"VWR, 384, PCR, 30uL, Clear, PPE","kind":"plate","rows":16,"cols":24,"cap":30},
     "c_100":{"label":"VWR, 96, Deep Well, 2.0 mL, Round Well, Round Bottom, Clear","kind":"plate","rows":8,"cols":12,"cap":2000},
-    "c_107":{"label":"Whatman, 96, Deep Well, 2.2 mL, Square Well, Conical Bottom…","kind":"plate","rows":8,"cols":12,"cap":2200}
+    "c_107":{"label":"Whatman, 96, Deep Well, 2.2 mL, Square Well, Conical Bottom…","kind":"plate","rows":8,"cols":12,"cap":2200},
+    "c_39":{"label":"Alpaqua, Magnum EX Magnet","kind":"magnet","rows":1,"cols":1,"align":"SiteAlignment_AlpaquaMagnumEx_Magnet"},
+    "c_40":{"label":"Invitrogen, 96 Position, Post Magnet","kind":"magnet","rows":1,"cols":1,"align":"SiteAlignment_Invitro_Magnet"},
+    "c_41":{"label":"Alpaqua, Magnum FLX Magnet","kind":"magnet","rows":1,"cols":1,"align":"SiteAlignment_AlpaquaMagnumFlx_Magnet"},
+    "c_42":{"label":"Alpaqua, 96S Super Magnet","kind":"magnet","rows":1,"cols":1,"align":"SiteAlignment_AlpaquaS_Magnet"},
+    "c_43":{"label":"Applied Biosys, Ambion, 96 Ring Stand Magnet","kind":"magnet","rows":1,"cols":1,"align":"SiteAlignment_Magnetic_RingStand"}
   };
   const BUILTIN = {
     "tips_50":{"id":16,"name":"235966","label":"50 µL Framed Conductive No Filter"},

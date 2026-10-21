@@ -4927,5 +4927,209 @@
     }
    ]
   }
+ },
+ {
+  "name": "magnet choice: Hamilton PCR plate fits the Alpaqua 96S magnet",
+  "valid": true,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "5": {
+     "lw": "c_42",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: Hamilton PCR plate fits the Alpaqua Magnum FLX magnet",
+  "valid": true,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "5": {
+     "lw": "c_41",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: Hamilton PCR plate does not fit the catalogue Ring Stand (c_43)",
+  "valid": false,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "5": {
+     "lw": "c_43",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: deep-well plate fits the Ring Stand picked from the catalogue",
+  "valid": true,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    },
+    "5": {
+     "lw": "c_43",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: Bio-Rad full-skirt plate fits the Alpaqua 96S but not the built-in magnet",
+  "valid": true,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "c_184",
+     "label": ""
+    },
+    "5": {
+     "lw": "c_42",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: Bio-Rad full-skirt plate does not fit the built-in Ring Stand magnet",
+  "valid": false,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "c_184",
+     "label": ""
+    },
+    "5": {
+     "lw": "magnet",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
  }
 ]

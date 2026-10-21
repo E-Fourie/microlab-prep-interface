@@ -450,11 +450,12 @@ _MAGNET_ALIGN = re.compile(r"_Magnet$|_RingStand$")
 _PART = re.compile(r"([A-P])(\d{1,2})(?::([A-P])(\d{1,2}))?")
 
 
-def magnet_misfit(plate_key, mapping=None):
+def magnet_misfit(plate_key, mapping=None, magnet_key="magnet"):
     """True when the plate does not list the magnet's alignment, so the Prep refuses "Move To/From Magnet" for it.
-    `mapping` is protocols/.labware-map.json ({key: catalogue name or id}), which may point "magnet" at another magnet."""
+    `magnet_key` is the deck key of the magnet: the built-in "magnet" (the Ring Stand) or a catalogue magnet c_<id>. `mapping` is
+    protocols/.labware-map.json ({key: catalogue name or id}), which may point a key at another magnet."""
     cat = labware_map.harvest()
-    plate, magnet = (labware_map.resolve_key(cat, k, mapping)[0] for k in (plate_key, "magnet"))
+    plate, magnet = (labware_map.resolve_key(cat, k, mapping)[0] for k in (plate_key, magnet_key))
     if not plate or plate.get("classification") != "plate" or not magnet:
         return False
     need = next((a for a in magnet.get("siteAlignments", []) if _MAGNET_ALIGN.search(a)), None)
@@ -502,8 +503,8 @@ def head_errors(spec, mapping=None):
             occ[HHS_POS] = occ.pop(st["pos"])
         elif t == "move" and st["fromPos"] in occ and st["toPos"] not in occ:
             f, to = st["fromPos"], st["toPos"]
-            if to in deck and lib[deck[to]["lw"]]["kind"] == "magnet" and kind(f) == "plate" and magnet_misfit(deck[occ[f]]["lw"], mapping):
-                out.append(f"Step {i + 1}: {lib[deck[occ[f]]['lw']]['label']} does not fit the {lib[deck[to]['lw']]['label']}: the Prep only accepts plates that list the magnet's alignment.")
+            if to in deck and lib[deck[to]["lw"]]["kind"] == "magnet" and kind(f) == "plate" and magnet_misfit(deck[occ[f]]["lw"], mapping, deck[to]["lw"]):
+                out.append(f"Step {i + 1}: {lib[deck[occ[f]]['lw']]['label']} does not fit the {lib[deck[to]['lw']]['label']}: the Prep only accepts plates that list the magnet's alignment. Pick a different magnet (the Prep's catalogue has several) or a compatible plate such as the 96 deep-well plate.")
             occ[to] = occ.pop(f)
     return out
 
