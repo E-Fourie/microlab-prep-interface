@@ -4900,8 +4900,8 @@
   }
  },
  {
-  "name": "PCR plate cannot go onto the Ring Stand magnet",
-  "valid": false,
+  "name": "Hamilton PCR plate (full skirt, low profile) can go onto the Ring Stand magnet",
+  "valid": true,
   "input": {
    "name": "ok",
    "deck": {
@@ -4997,8 +4997,8 @@
   }
  },
  {
-  "name": "magnet choice: Hamilton PCR plate does not fit the catalogue Ring Stand (c_43)",
-  "valid": false,
+  "name": "magnet choice: Hamilton PCR plate (full skirt) fits the catalogue Ring Stand (c_43)",
+  "valid": true,
   "input": {
    "name": "magnet choice",
    "deck": {
@@ -5099,8 +5099,8 @@
   }
  },
  {
-  "name": "magnet choice: Bio-Rad full-skirt plate does not fit the built-in Ring Stand magnet",
-  "valid": false,
+  "name": "magnet choice: Bio-Rad full-skirt plate fits the built-in Ring Stand magnet",
+  "valid": true,
   "input": {
    "name": "magnet choice",
    "deck": {
@@ -5110,6 +5110,40 @@
     },
     "3": {
      "lw": "c_184",
+     "label": ""
+    },
+    "5": {
+     "lw": "magnet",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    },
+    {
+     "type": "move",
+     "fromPos": "5",
+     "toPos": "3"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: Bio-Rad semi-skirt plate does not fit the built-in Ring Stand magnet",
+  "valid": false,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "c_191",
      "label": ""
     },
     "5": {

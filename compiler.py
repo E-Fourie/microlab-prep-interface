@@ -487,7 +487,7 @@ class _Compiler:
         if mag_pos is not None:   # the Prep only takes a plate onto a magnet whose alignment the plate lists
             plate_o, mag_o = self.obj[deck[home]["lw"]], self.obj[deck[mag_pos]["lw"]]
             need = [a for a in mag_o.get("siteAlignments", []) if spec_check._MAGNET_ALIGN.search(a)]
-            if need and not set(need) & set(plate_o.get("siteAlignments", [])):
+            if need and not spec_check.fully_skirted(plate_o) and not set(need) & set(plate_o.get("siteAlignments", [])):
                 self.fail(i, f"{labware_map.describe(plate_o)} is not compatible with the magnet {labware_map.describe(mag_o)} (the plate does not list {', '.join(need)}). "
                              "Use a plate that fits it, or map 'magnet' to a magnet the plate fits in protocols/.labware-map.json")
         self.records.append({"startPosition": int(home), "endPosition": int(t), "stepType": "TransportStep", "id": 0, "name": "Move To/From Magnet Step",

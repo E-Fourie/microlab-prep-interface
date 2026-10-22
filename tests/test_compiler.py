@@ -293,9 +293,10 @@ class HeadRules(Base):
         t = self.c(spec([{"type": "transfer", "fromPos": "3", "fromWells": "A1:A2", "toPos": "6", "toWells": "B5:B6", "vol": 2.5}], deck=deck))
         self.assertTrue(t["steps"][0]["newTipsEachTransfer"])   # an ordinary transfer is unchanged
 
-    def test_pcr_plate_cannot_go_onto_the_ring_stand_magnet(self):
+    def test_only_fully_skirted_plates_skip_the_magnet_alignment(self):
         deck = dict(DECK, **{"6": {"lw": "plate_pcr"}})
-        self.fails(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck), "magnet")
+        self.c(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck))   # Hamilton PCR is full skirt, low profile
+        self.fails(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=dict(DECK, **{"6": {"lw": "c_191"}})), "magnet")   # Bio-Rad semi skirt
         self.c(spec([{"type": "move", "fromPos": "3", "toPos": "5"}]))   # the deep-well plate fits
         labware_map.write_map(self.dir, {"magnet": "C1p1fmpr8HAM"})        # the Alpaqua 96S Super Magnet takes a PCR plate
         self.c(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck))
@@ -370,7 +371,8 @@ class Errors(Base):
         out = self.c(spec(moves, deck=deck("c_42")))
         site = [d for d in out["deck"]["positions"] if d["position"] == 5][0]
         self.assertIn("96S Super Magnet", site["labwareGroup"]["labware"]["displayName"])
-        self.fails(spec(moves, deck=deck("c_43")), "does not fit the")
+        self.c(spec(moves, deck=deck("c_43")))   # the Hamilton PCR plate is full skirt (low profile): the gripper takes it onto any magnet
+        self.fails(spec(moves, deck=dict(DECK, **{"3": {"lw": "c_191"}, "5": {"lw": "c_43"}})), "does not fit the")   # semi skirt still has to list the alignment
 
     def test_timed_pause(self):
         out = self.c(spec([{"type": "pause", "message": "Ice 20 min", "minutes": 20}, {"type": "pause", "message": "Press Continue"}]))

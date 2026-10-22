@@ -454,13 +454,19 @@ _MAGNET_ALIGN = re.compile(r"_Magnet$|_RingStand$")
 _PART = re.compile(r"([A-P])(\d{1,2})(?::([A-P])(\d{1,2}))?")
 
 
+def fully_skirted(plate):
+    """True for a fully skirted plate (catalogue name says "Full Skirt"; low profile is fine). The gripper can carry these between
+    positions and onto any magnet; semi / half / no skirt plates still have to list the magnet's alignment."""
+    return "full skirt" in f"{plate.get('displayName') or ''} {plate.get('name') or ''}".lower()
+
+
 def magnet_misfit(plate_key, mapping=None, magnet_key="magnet"):
     """True when the plate does not list the magnet's alignment, so the Prep refuses "Move To/From Magnet" for it.
     `magnet_key` is the deck key of the magnet: the built-in "magnet" (the Ring Stand) or a catalogue magnet c_<id>. `mapping` is
     protocols/.labware-map.json ({key: catalogue name or id}), which may point a key at another magnet."""
     cat = labware_map.harvest()
     plate, magnet = (labware_map.resolve_key(cat, k, mapping)[0] for k in (plate_key, magnet_key))
-    if not plate or plate.get("classification") != "plate" or not magnet:
+    if not plate or plate.get("classification") != "plate" or not magnet or fully_skirted(plate):
         return False
     need = next((a for a in magnet.get("siteAlignments", []) if _MAGNET_ALIGN.search(a)), None)
     return need is not None and need not in plate.get("siteAlignments", [])

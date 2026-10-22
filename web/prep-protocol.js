@@ -303,7 +303,7 @@
    * Rules the Prep enforces that need the deck as the steps play out. Returns [{ step, msg }]. spec_check.head_errors is the Python twin.
    * - Plate-to-plate transfers on 96-well plates run on the 8-channel head (the 2-channel head is used when a 384-well plate is on the deck and
    *   takes single wells), and the 8-channel head can only pipette whole columns (A-H of one column).
-   * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet).
+   * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet), except fully skirted plates (low profile too), which the gripper takes anywhere.
    */
   function headErrors(spec) {
     const lib = libFor(spec), deck = spec.deck, out = [];
@@ -316,7 +316,8 @@
     const whole = ws => ws.length > 0 && ws.length % 8 === 0 && ws.every(([r, c], n) => r === n % 8 && c === ws[n - (n % 8)][1]);
     const plateId = k => (Catalogue.BUILTIN[k] ? Catalogue.BUILTIN[k].id : CATALOGUE_KEY.test(k) ? +k.slice(2) : null);
     const magnetAlign = k => (lib[k] && lib[k].align) || (k === 'magnet' ? Catalogue.MAGNET_ALIGNMENT : null); // the alignment a plate must list to sit on magnet k
-    const misfit = (k, m) => { const id = plateId(k), al = magnetAlign(m); return id !== null && !!al && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(al); };
+    const fullSkirt = k => { const id = plateId(k), e = id === null ? null : Catalogue.ALL.find(x => x.id === id); return /full skirt/i.test(e ? e.displayName : (lib[k] && lib[k].label) || ''); }; // fully skirted plates (low profile too) are gripped fine on any magnet
+    const misfit = (k, m) => { const id = plateId(k), al = magnetAlign(m); return id !== null && !fullSkirt(k) && !!al && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(al); };
     spec.steps.forEach((s, i) => {
       if (s.type === 'transfer' && eight && kind(s.fromPos) === 'plate' && kind(s.toPos) === 'plate') {
         [['Source', s.fromWells], ['Destination', s.toWells]].forEach(([role, text]) => {
