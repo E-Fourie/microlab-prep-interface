@@ -13,6 +13,7 @@ Standard library only.
 import copy
 import itertools
 import json
+import math
 import os
 import sys
 
@@ -59,11 +60,12 @@ CUSTOM_LIQUID = {"id": 0, "asFlowRate": 250, "asMixFlowRate": 120, "asBlowOutVol
                  "correctionCurve": [{"target": t, "value": v, "isUserAdded": False} for t, v in
                                      ((0, 0), (10, 13), (20, 24.2), (50, 55.7), (100, 107.1), (200, 208.9), (500, 514.3), (1000, 1022))],
                  "isUserLiquid": False}
-OPT_KEYS = ("aspFlow", "dspFlow", "aspHeight", "dspHeight", "tipDiscard")
+OPT_KEYS = ("aspFlow", "dspFlow", "aspHeight", "dspHeight", "tipDiscard", "head")
 HARDWARE = {"hhs": False, "hhc": False, "hepaUv": False, "twoChannel": False, "mph": True, "siteOne": False}
 REPORT = {"savePdf": False, "saveJson": False, "savePipettingCsv": False, "pipettingCsvPerStep": False, "reportPath": None}
 SMALL_DISPENSE = 5            # uL: at or below this a multi-dispense uses SMALL_ALIQUOT instead of the 20 uL pre/post aliquot
 SMALL_ALIQUOT = 5
+MIN_ALIQUOT = 5               # uL: the Prep refuses an aliquot of 0, and a multi-dispense needs room for volume + pre + post aliquot in the tip
 DEFAULT_PAUSE_SECONDS = 120  # only a placeholder: a message pause has pauseForSetDuration false (a pause with `minutes` is a timed one)
 DEFAULT_RPM = 1000            # kept when a step only heats (shake false)
 DEFAULT_TEMP = 37             # kept when a step only shakes (heat false)
@@ -248,7 +250,8 @@ class _Compiler:
         for n, r in enumerate(self.records, 1):
             r["stepOrder"] = n
             steps.append(r)
-        hw = dict(HARDWARE, hhs=self.has_shake, twoChannel=self.channels == "TwoChannel", mph=self.channels != "TwoChannel")
+        used = {r.get("channelSelection") for r in steps} - {None}   # a protocol that picks heads per step needs both
+        hw = dict(HARDWARE, hhs=self.has_shake, twoChannel=("TwoChannel" in used) if used else self.channels == "TwoChannel", mph=("EightChannel" in used) if used else self.channels != "TwoChannel")
         out = {"name": sp["name"]}
         if sp.get("description"):
             out["description"] = sp["description"]
@@ -256,6 +259,10 @@ class _Compiler:
         _number_entities(out["steps"], itertools.count(FIRST_ENTITY_ID))
         _number_entities(out["deck"]["positions"], itertools.count(FIRST_ENTITY_ID + 100000))
         return out
+
+    def ch(self, s):
+        """The head for step s: its own `head` option, else the protocol-wide one (2-channel when a 384-well plate is on the deck)."""
+        return {"two": "TwoChannel", "eight": "EightChannel"}.get(s.get("head"), self.channels)
 
     def fail(self, i, msg):
         raise ConverterUnavailable(f"Step {i + 1} ({self.spec['steps'][i]['type']}): {msg}")
@@ -267,6 +274,7 @@ class _Compiler:
         fit = sorted([r for r in avail if r["vol"] >= vol], key=lambda r: r["vol"]) or sorted(avail, key=lambda r: -r["vol"])
         r = fit[0]
         r["used"] += 1
+        self.tip_vol = r["vol"]
         return self.group(self.spec["deck"][r["pos"]]["lw"], self.obj[self.spec["deck"][r["pos"]]["lw"]])["id"]
 
     def plate(self, pos, i, role):
@@ -297,12 +305,19 @@ class _Compiler:
         self.records.append(rec)
         self.last = {"rec": rec, "sig": sig, "spec_i": spec_i, "wells": list(wells_key), "mixed": False}
 
-    @staticmethod
-    def multi_dispense(vol):
-        """The real protocol primes and finishes every multi-dispense with a 20 uL aliquot; for droplet-sized dispenses (<= 5 uL) that is far too much, so use 5 uL."""
+    def multi_dispense(self, vol, i):
+        """The real protocol primes and finishes every multi-dispense with a 20 uL aliquot; for droplet-sized dispenses (<= 5 uL) that is far too much, so use 5 uL.
+        The aliquots are shrunk so volume + 2 aliquots fits the tip (the Prep refuses anything over the tip's capacity), and they are blown out to waste, not back into the reagent."""
         m = copy.deepcopy(ADD_REAGENT["multiDispenseSettings"])
-        if vol <= SMALL_DISPENSE:
-            m["preAliquotSettings"]["volume"] = m["postAliquotSettings"]["volume"] = SMALL_ALIQUOT
+        aliquot = SMALL_ALIQUOT if vol <= SMALL_DISPENSE else m["preAliquotSettings"]["volume"]
+        room = (self.tip_vol - vol) / 2
+        if room < aliquot:
+            aliquot = _num(math.floor(room * 10) / 10)
+            if aliquot < MIN_ALIQUOT:
+                self.fail(i, f"a multi-dispense of {vol} uL needs a pre and post aliquot of at least {MIN_ALIQUOT} uL each in the {self.tip_vol} uL tip. "
+                             f"Use a smaller volume per dispense or set multiDispense to false on the step (one aspirate and one dispense per well)")
+        for k in ("preAliquotSettings", "postAliquotSettings"):
+            m[k]["volume"], m[k]["sampleDiscardLocation"] = aliquot, "Waste"
         return m
 
     @staticmethod
@@ -359,6 +374,9 @@ class _Compiler:
                 pairs = [(sl, [d]) for sl, d in zip(slots, dst)]
             if sh != src_pos:
                 self.fail(i, "a reservoir cannot be moved")
+            single = s.get("multiDispense") is False   # one aspirate and one dispense per well, a fresh tip for each well; never merged into a multi-dispense
+            if single:
+                pairs = [(slot, [w]) for slot, wells in pairs for w in wells]
             for slot, wells in pairs:
                 g = self.slot_group.get((sh, slot[0] - 1))
                 if g is None or not g["liquidName"]:
@@ -366,14 +384,19 @@ class _Compiler:
                 tip = self.take(vol, i)
                 a, d = copy.deepcopy(ADD_REAGENT["aspirateSettings"]), copy.deepcopy(ADD_REAGENT["dispenseSettings"])
                 a["transferVolume"] = d["transferVolume"] = _num(vol)
-                rec = {"channelSelection": self.channels, "tipLabwareGroupId": tip, "tipLabwareDisplayName": None, "liquidLabwareGroupId": g["id"],
-                       "newTipsEachTransfer": False, "mixBeforeAspirate": False, "mixAfterDispense": False, "multiDispense": True,
+                if single:
+                    md = copy.deepcopy(ADD_REAGENT["multiDispenseSettings"])
+                    md["usePreAliquot"] = md["usePostAliquot"] = False
+                else:
+                    md = self.multi_dispense(vol, i)
+                rec = {"channelSelection": self.ch(s), "tipLabwareGroupId": tip, "tipLabwareDisplayName": None, "liquidLabwareGroupId": g["id"],
+                       "newTipsEachTransfer": single, "mixBeforeAspirate": False, "mixAfterDispense": False, "multiDispense": not single,
                        "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste",
-                       "multiDispenseSettings": self.multi_dispense(vol), "aspirateSettings": a, "dispenseSettings": d,
+                       "multiDispenseSettings": md, "aspirateSettings": a, "dispenseSettings": d,
                        "destinations": [{"position": int(dh), "addresses": _addr(wells)}], "customizeLiquid": False, "customLiquidSettings": None,
                        "stepType": "AddReagentStep", "id": 0, "name": g["liquidName"], "stepOrder": 0, "disabled": False}
                 self.apply_opts(s, rec)
-                self.emit(rec, i, ("add", sh, slot, dh, vol, self.opts(s)), wells)
+                self.emit(rec, i, ("add", sh, slot, dh, vol, self.opts(s)) + ((object(),) if single else ()), wells)
             return
         if skind not in ("plate", "tubes") or dkind not in ("plate", "tubes"):
             self.fail(i, f"cannot transfer from {skind} to {dkind}")
@@ -388,7 +411,7 @@ class _Compiler:
             src = src * len(dst)
         elif len(src) != len(dst):
             self.fail(i, "transfer needs equal numbers of source and destination wells")
-        if self.channels == "EightChannel" and skind == dkind == "plate":
+        if self.ch(s) == "EightChannel" and skind == dkind == "plate":
             for role, wells in (("source", src), ("destination", dst)):
                 if not spec_check._whole_columns([(r - 1, c - 1) for r, c in wells]):
                     self.fail(i, f"the {role} wells are not whole columns. Plate-to-plate transfers on 96-well plates use the 8-channel head, which can only "
@@ -399,7 +422,7 @@ class _Compiler:
             self.fail(i, "tips would come from different kinds of rack inside one step")
         a, d = copy.deepcopy(TRANSFER["aspirateSettings"]), copy.deepcopy(TRANSFER["dispenseSettings"])
         a["transferVolume"] = d["transferVolume"] = _num(vol)
-        rec = {"channelSelection": self.channels, "tipLabwareGroupId": tips.pop(), "liquidType": self.liquid_at(sh, src), "newTipsEachTransfer": not distribute, "mixBeforeAspirate": False,
+        rec = {"channelSelection": self.ch(s), "tipLabwareGroupId": tips.pop(), "liquidType": self.liquid_at(sh, src), "newTipsEachTransfer": not distribute, "mixBeforeAspirate": False,
                "mixAfterDispense": False, "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste", "dispenseToWaste": False,
                "aspirateSettings": a, "dispenseSettings": d, "sources": [{"position": int(sh), "addresses": _addr(src)}],
                "destinations": [{"position": int(dh), "addresses": _addr(dst)}], "customizeLiquid": False, "customLiquidSettings": None,
@@ -407,17 +430,40 @@ class _Compiler:
         self.apply_opts(s, rec)
         self.emit(rec, i, ("xfer", sh, dh, vol, self.opts(s), distribute), dst)
 
+    def step_discard(self, s, i):
+        """Take vol out of each well to waste: the Prep's own 'Discard' is a TransferSamplesStep with dispenseToWaste and no destinations, one tip per well."""
+        h, rows, cols, kind = self.plate(s["pos"], i, "discard wells")
+        if kind not in ("plate", "tubes"):
+            self.fail(i, f"cannot discard from {kind}")
+        wells = expand_wells(s["wells"], rows, cols, "discard")
+        if self.ch(s) == "EightChannel" and kind == "plate" and not spec_check._whole_columns([(r - 1, c - 1) for r, c in wells]):
+            self.fail(i, "the wells are not whole columns. Discards on 96-well plates use the 8-channel head, which can only pipette whole columns "
+                         "(A-H of one column, e.g. A1:H1). Select full columns, or put a 384-well plate on the deck to use the 2-channel head")
+        tips = {self.take(s["vol"], i) for _ in wells}
+        if len(tips) != 1:
+            self.fail(i, "tips would come from different kinds of rack inside one step")
+        a, d = copy.deepcopy(TRANSFER["aspirateSettings"]), copy.deepcopy(TRANSFER["dispenseSettings"])
+        a["transferVolume"] = d["transferVolume"] = _num(s["vol"])
+        rec = {"channelSelection": self.ch(s), "tipLabwareGroupId": tips.pop(), "liquidType": self.liquid_at(h, wells), "newTipsEachTransfer": True, "mixBeforeAspirate": False,
+               "mixAfterDispense": False, "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste", "dispenseToWaste": True,
+               "aspirateSettings": a, "dispenseSettings": d, "sources": [{"position": int(h), "addresses": _addr(wells)}],
+               "destinations": [], "customizeLiquid": False, "customLiquidSettings": None,
+               "stepType": "TransferSamplesStep", "id": 0, "name": "Discard", "stepOrder": 0, "disabled": False}
+        self.apply_opts(s, rec)
+        self.records.append(rec)
+        self.last = None  # never merged with a neighbouring step
+
     def step_mix(self, s, i):
         h, rows, cols, kind = self.plate(s["pos"], i, "mix wells")
         wells = expand_wells(s["wells"], rows, cols, "mix")
         for _ in wells:
             self.take(s["vol"], i)
         last = self.last
-        if not (last and last["spec_i"] == i - 1 and last["rec"]["stepType"] == "TransferSamplesStep" and not last["mixed"]
+        if not (last and last["spec_i"] == i - 1 and last["rec"]["stepType"] in ("TransferSamplesStep", "AddReagentStep") and last["rec"]["destinations"] and not last["mixed"]
                 and last["rec"]["destinations"][0]["position"] == int(h)
                 and {(a["row"], a["column"]) for a in last["rec"]["destinations"][0]["addresses"]} == set(wells)):
-            self.fail(i, "a mix can only be expressed as mix-after-dispense on the plate-to-plate transfer step right before it, on exactly the wells that step filled. "
-                         "(Mixing a reagent addition, or other wells, is not supported.)")
+            self.fail(i, "a mix can only be expressed as mix-after-dispense on the transfer or add-reagent step right before it, on exactly the wells that step filled. "
+                         "(An add-reagent step with multiDispense off is one Prep step per well, so it cannot be mixed. Mixing other wells is not supported.)")
         d = last["rec"]["dispenseSettings"]
         last["rec"]["mixAfterDispense"] = True
         d["mixVolume"], d["mixCycles"] = _num(s["vol"]), s["cycles"]
@@ -487,7 +533,7 @@ class _Compiler:
         if mag_pos is not None:   # the Prep only takes a plate onto a magnet whose alignment the plate lists
             plate_o, mag_o = self.obj[deck[home]["lw"]], self.obj[deck[mag_pos]["lw"]]
             need = [a for a in mag_o.get("siteAlignments", []) if spec_check._MAGNET_ALIGN.search(a)]
-            if need and not spec_check.fully_skirted(plate_o) and not set(need) & set(plate_o.get("siteAlignments", [])):
+            if need and not set(need) & set(plate_o.get("siteAlignments", [])):
                 self.fail(i, f"{labware_map.describe(plate_o)} is not compatible with the magnet {labware_map.describe(mag_o)} (the plate does not list {', '.join(need)}). "
                              "Use a plate that fits it, or map 'magnet' to a magnet the plate fits in protocols/.labware-map.json")
         self.records.append({"startPosition": int(home), "endPosition": int(t), "stepType": "TransportStep", "id": 0, "name": "Move To/From Magnet Step",

@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════
-// Hamilton Microlab Prep protocols, as the Builder describes them. The Builder page and
-// the converter's checker (spec_check.py) agree on what a protocol is and what is allowed.
+// Hamilton Microlab Prep protocols, as the Builder describes them. Shared by the
+// Prep Builder page, the oligo normalisation page, the /api/v1 routes and (as a
+// copy) the lab laptop's Prep Interface, so every one of them agrees on what a
+// protocol is and what is allowed.
 //
 // A protocol ("spec") is plain data:
 //   { name, description, deck: { "1": { lw, label } ... },
@@ -11,8 +13,10 @@
 //     pauses for one to be refilled;
 //     without channels one tip is used per well)
 //     (discard takes vol uL out of each of the wells at pos to waste, one tip per well: { type, pos, wells, vol })
+//     (every pipetting step may carry head: 'two' | 'eight' to pick the 2-channel or 8-channel head for that step; without it the whole protocol uses the 8-channel head,
+//     or the 2-channel head when a 384-well plate is on the deck. The 2-channel head takes single wells; the 8-channel head only whole columns)
 //     (every step may also carry label, a name shown in the Builder and the playback)
-//     (transfer/distribute may also carry aspFlow, dspFlow in uL/s, aspHeight, dspHeight in mm)
+//     (transfer/distribute may also carry aspFlow, dspFlow in uL/s, aspHeight, dspHeight in mm; a reagent step may carry multiDispense: false for one aspirate and one dispense per well with a fresh tip each, needed when volume + 2 x 5 uL aliquots would not fit the tip)
 //     (every pipetting step may carry tipDiscard 'waste' | 'rack': 'rack' puts each used tip back in the place it came from. It is still a used
 //     tip and is never picked up again, and the machine does not count it as a spare: when the fresh tips run out it asks for a refill
 //     even though used tips are sitting in the rack, so those are taken out and fresh ones put in)
@@ -38,11 +42,11 @@
 // c_<Prep id>, e.g. c_208), and every liquid in `contents` must be one of the Prep's liquid classes. A protocol cannot bring its own
 // hardware. check() fills `labware` with the catalogue definitions the deck uses, so a protocol stays readable on its own.
 //
-// spec_check.py is the Python port of check(), resolve() and the placement rules: change both together and add a vector (tests/vectors).
+// Keep the copies in the Prep Interface repo (web/prep-protocol.js and web/prep-catalogue.js) identical to these files.
 // ═══════════════════════════════════════════════════════
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./prep-catalogue.js'));
-  else (root.PrepCalc = root.PrepCalc || {}).prepProtocol = factory(root.PrepCalc.prepCatalogue);
+  else (root.PSBACalc = root.PSBACalc || {}).prepProtocol = factory(root.PSBACalc.prepCatalogue);
 })(typeof self !== 'undefined' ? self : this, function (Catalogue) {
   const LABWARE = {
     tips_50: { label: '50 µL tip rack', kind: 'tips', rows: 8, cols: 12, tipVol: 50 },
@@ -59,6 +63,7 @@
   };
   const STEP_TYPES = ['transfer', 'distribute', 'mix', 'discard', 'shake', 'pause', 'move'];
   const HHS_POS = '1';
+  const MIN_ALIQUOT = 5; // µL: the smallest pre or post aliquot the Prep takes in a multi-dispense (the compiler shrinks the usual 20 µL to fit the tip)
   const RESERVOIR_POS = LABWARE.reservoir_60.only;
   const POSITIONS = ['1', '2', '3', '4', '5', '6', '7', '8'];
   const ROWS = 'ABCDEFGHIJKLMNOP';
@@ -236,6 +241,7 @@
       const vol = () => num(s.vol, `${p}.vol`, errors, { min: 0, max: LIMITS.vol });
       const before = spec.steps.length;
       const head = st => { // optional 8-channel settings, shared by every pipetting step
+        if (s.head !== undefined && s.head !== null && s.head !== '') { if (s.head === 'two' || s.head === 'eight') st.head = s.head; else errors.push({ path: `${p}.head`, msg: 'must be "two" or "eight"' }); }
         if (s.channels !== undefined && s.channels !== null && s.channels !== '') { if (s.channels === 1 || s.channels === 8) st.channels = s.channels; else errors.push({ path: `${p}.channels`, msg: 'must be 1 or 8' }); }
         if (s.tipDiscard !== undefined && s.tipDiscard !== null && s.tipDiscard !== '') {
           if (s.tipDiscard === 'waste' || s.tipDiscard === 'rack') st.tipDiscard = s.tipDiscard; else errors.push({ path: `${p}.tipDiscard`, msg: 'must be "waste" or "rack"' });
@@ -249,6 +255,7 @@
         const opt = (k, o) => { if (s[k] !== undefined && s[k] !== null && s[k] !== '') st[k] = num(s[k], `${p}.${k}`, errors, o); };
         opt('aspFlow', { min: 1, max: LIMITS.flow }); opt('dspFlow', { min: 1, max: LIMITS.flow });
         opt('aspHeight', { min: -LIMITS.height, max: LIMITS.height }); opt('dspHeight', { min: 0, max: LIMITS.height });
+        if (s.multiDispense !== undefined && s.multiDispense !== null && s.multiDispense !== '') { if (typeof s.multiDispense === 'boolean') st.multiDispense = s.multiDispense; else errors.push({ path: `${p}.multiDispense`, msg: 'must be true or false' }); } // false: one aspirate and one dispense per well, a fresh tip for each well (a reagent step only)
         spec.steps.push(head(st));
       }
       else if (s.type === 'mix') spec.steps.push(head({ type: 'mix', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol(), cycles: num(s.cycles === undefined ? 3 : s.cycles, `${p}.cycles`, errors, { min: 1, max: LIMITS.cycles, int: true, fallback: 1 }) }));
@@ -303,7 +310,7 @@
    * Rules the Prep enforces that need the deck as the steps play out. Returns [{ step, msg }]. spec_check.head_errors is the Python twin.
    * - Plate-to-plate transfers on 96-well plates run on the 8-channel head (the 2-channel head is used when a 384-well plate is on the deck and
    *   takes single wells), and the 8-channel head can only pipette whole columns (A-H of one column).
-   * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet), except fully skirted plates (low profile too), which the gripper takes anywhere.
+   * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet; being full skirt does not help).
    */
   function headErrors(spec) {
     const lib = libFor(spec), deck = spec.deck, out = [];
@@ -316,10 +323,9 @@
     const whole = ws => ws.length > 0 && ws.length % 8 === 0 && ws.every(([r, c], n) => r === n % 8 && c === ws[n - (n % 8)][1]);
     const plateId = k => (Catalogue.BUILTIN[k] ? Catalogue.BUILTIN[k].id : CATALOGUE_KEY.test(k) ? +k.slice(2) : null);
     const magnetAlign = k => (lib[k] && lib[k].align) || (k === 'magnet' ? Catalogue.MAGNET_ALIGNMENT : null); // the alignment a plate must list to sit on magnet k
-    const fullSkirt = k => { const id = plateId(k), e = id === null ? null : Catalogue.ALL.find(x => x.id === id); return /full skirt/i.test(e ? e.displayName : (lib[k] && lib[k].label) || ''); }; // fully skirted plates (low profile too) are gripped fine on any magnet
-    const misfit = (k, m) => { const id = plateId(k), al = magnetAlign(m); return id !== null && !fullSkirt(k) && !!al && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(al); };
+    const misfit = (k, m) => { const id = plateId(k), al = magnetAlign(m); return id !== null && !!al && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(al); };
     spec.steps.forEach((s, i) => {
-      if (s.type === 'transfer' && eight && kind(s.fromPos) === 'plate' && kind(s.toPos) === 'plate') {
+      if (s.type === 'transfer' && (s.head ? s.head === 'eight' : eight) && kind(s.fromPos) === 'plate' && kind(s.toPos) === 'plate') {
         [['Source', s.fromWells], ['Destination', s.toWells]].forEach(([role, text]) => {
           if (!whole(list(text))) out.push({ step: i, msg: `${role} wells ${text} are not whole columns. A plate-to-plate transfer on 96-well plates uses the 8-channel head, which can only pipette whole columns (A-H of one column, e.g. A1:H1). Select full columns.` });
         });
@@ -437,7 +443,10 @@
               src.wells.forEach((w, n) => { if (!pk) grab(v, i); const l = aspirate(src.id, w, v, i); dispense(dst.id, dst.wells[n], v, l, dst.lw, i); });
             }
           } else if (src.wells.length !== 1) errors.push({ step: i, msg: 'Add reagent needs exactly one source well.' });
-          else { const pk = pickups(s, dst.wells, 'step'); if (pk) pk.forEach(it => grab(v, i, it)); else grab(v, i); dst.wells.forEach(w => { const l = aspirate(src.id, src.wells[0], v, i); dispense(dst.id, w, v, l, dst.lw, i); }); }
+          else {
+            const fit = racks.filter(r => r.tipVol >= v).sort((x, y) => x.tipVol - y.tipVol)[0] || racks.slice().sort((x, y) => y.tipVol - x.tipVol)[0], single = s.multiDispense === false;
+            if (!single && fit && src.lw.kind === 'reservoirs' && v + 2 * MIN_ALIQUOT > fit.tipVol) errors.push({ step: i, msg: `A multi-dispense of ${v} µL needs room in the ${fit.tipVol} µL tip for a pre and post aliquot of at least ${MIN_ALIQUOT} µL each. Use a smaller volume per dispense, or turn multi-dispense off for this step (one aspirate and one dispense per well).` });
+            const pk = single ? null : pickups(s, dst.wells, 'step'); if (pk) pk.forEach(it => grab(v, i, it)); else if (!single) grab(v, i); dst.wells.forEach(w => { if (single) grab(v, i); const l = aspirate(src.id, src.wells[0], v, i); dispense(dst.id, w, v, l, dst.lw, i); }); }
           mark(ev.hl, src.pos, src.wells); mark(ev.hl2, dst.pos, dst.wells);
         }
       } else if (s.type === 'mix') {

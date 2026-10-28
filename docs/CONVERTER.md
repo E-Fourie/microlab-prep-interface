@@ -11,7 +11,7 @@ starting with the items under "Design notes" below.
 
 | Spec | Prep step |
 | --- | --- |
-| `transfer`/`distribute` from a reservoir slot to a plate | `AddReagentStep`: `liquidLabwareGroupId` is the slot's compartment group; `destinations` is an address list; multi-dispense on. Consecutive steps with the same slot, plate and volume (no other step between, no repeated well) become one step, wells concatenated in order |
+| `transfer`/`distribute` from a reservoir slot to a plate | `AddReagentStep`: `liquidLabwareGroupId` is the slot's compartment group; `destinations` is an address list; multi-dispense on (pre/post aliquots shrink to fit the tip, at least 5 uL each, and are blown out to waste, not back into the reagent). `"multiDispense": false` gives one aspirate and one dispense per well with a fresh tip each, never merged: use it when volume + 2 aliquots would not fit the tip (e.g. 50 uL in a 50 uL tip). Consecutive steps with the same slot, plate and volume (no other step between, no repeated well) become one step, wells concatenated in order |
 | `transfer` plate/tubes to plate/tubes | `TransferSamplesStep`: `sources` and `destinations` are paired by order; grouped like the above |
 | `shake` | `HeatShakeStep`: `duration` = minutes x 60 (seconds); `shake` if rpm > 0, `heat` if temp > 0 |
 | `pause` | `PauseStep` with the message, `pauseForSetDuration` false |
@@ -25,7 +25,8 @@ simulator's `occ`), so a spec's "plate on the magnet at 5" becomes position 3 ag
 carries the plate there itself inside the shake step, and the shake names the plate's home.
 Tip rack: the rack the spec's tip simulation takes from (`tipLabwareGroupId`); if tips would come from different kinds of rack within one step it refuses.
 The deck lists all 8 positions; position 1 is always empty with `hardwareRequirements.hhs` set when a shake exists.
-Not emitted because a spec cannot say it: discard to waste (`dispenseToWaste`), the how-many-samples `RtsaStep`.
+A `discard` step becomes the Prep's own Discard: a `TransferSamplesStep` with `dispenseToWaste` and no destinations, one tip per well (whole columns on the 8-channel head).
+Not emitted because a spec cannot say it: the how-many-samples `RtsaStep`.
 
 ## Variables
 
@@ -55,7 +56,7 @@ Plate-to-plate transfers take `liquidType` from the liquid loaded in the first s
   positive numbers from 900001, consistent within the document, because 0 would make every reference ambiguous and a positive number could collide with
   ids already in the Prep. Labware catalogue ids are the Prep's own.
 - **hardwareRequirements.** `hhs` true only when a shake exists; with any 16-row (384) plate on the deck the steps use `TwoChannel` (`twoChannel` true, `mph` false); otherwise `EightChannel` (`mph` true, `twoChannel` false); both as in protocols exported from this lab's Prep. Plate labware objects carry `wellMap`/`disabledWells`, as in those exports. The gripper has no flag in the real file.
-- **Settings templates** (heights, flow-follow, multi-dispense pre/post aliquots of 20 uL, `customLiquidSettings` null, `tipReuseOption` PerSample, discard to waste,
+- **Settings templates** (heights, flow-follow, multi-dispense pre/post aliquots of 20 uL (smaller if the tip needs it, discarded to waste), `customLiquidSettings` null, `tipReuseOption` PerSample, discard to waste,
   `newTipsEachTransfer` true for sample transfers) are copied in structure and values from the real protocol's steps. Aspirate and dispense `transferVolume` carry the
   spec volume. Pipetting heights and liquid classes were tuned for one lab's liquids and plates.
 - **8-channel pattern rule.** On the `EightChannel` head a plate-to-plate transfer must use whole columns (A-H of one column, one or more columns);

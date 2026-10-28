@@ -24,6 +24,9 @@ DECK = {"2": {"lw": "tips_300"}, "3": {"lw": "plate_deep"}, "4": {"lw": "reservo
 CONTENTS = [{"pos": "4", "wells": "A1", "liquid": "Aqueous", "vol": 40000}, {"pos": "4", "wells": "B1", "liquid": "Magnetic Beads", "vol": 40000}]
 
 
+TIP50_DECK = dict(DECK, **{"2": {"lw": "tips_50"}})
+
+
 def spec(steps, deck=None, **kw):
     return {"specVersion": 1, "name": "T", "deck": deck or DECK, "contents": CONTENTS, "steps": steps, **kw}
 
@@ -253,9 +256,34 @@ class Mapping(Base):
         self.assertTrue(s["mixAfterDispense"])
         self.assertEqual((s["dispenseSettings"]["mixVolume"], s["dispenseSettings"]["mixCycles"]), (15, 4))
 
+    def test_head_per_step(self):
+        scattered = {"type": "transfer", "fromPos": "3", "fromWells": "A1,B1", "toPos": "7", "toWells": "D1,A1", "vol": 5}
+        r = self.c(spec([{**scattered, "head": "two"}, {**xfer(s="A1:H1", d="A1:H1"), "head": "eight"}, dist()]))
+        self.assertEqual([s["channelSelection"] for s in r["steps"]], ["TwoChannel", "EightChannel", "EightChannel"])
+        self.assertTrue(r["hardwareRequirements"]["twoChannel"] and r["hardwareRequirements"]["mph"])
+        self.fails(spec([{**scattered, "head": "eight"}]), "whole columns")
+        self.fails(spec([scattered]), "whole columns")
+        r = self.c(spec([{**scattered, "head": "two"}]))
+        self.assertEqual((r["steps"][0]["channelSelection"], r["hardwareRequirements"]["twoChannel"], r["hardwareRequirements"]["mph"]), ("TwoChannel", True, False))
+
+    def test_discard_to_waste(self):
+        r = self.c(spec([{"type": "discard", "pos": "7", "wells": "A1:H1", "vol": 40}]))
+        (s,) = r["steps"]
+        self.assertEqual((s["stepType"], s["name"], s["dispenseToWaste"], s["destinations"]), ("TransferSamplesStep", "Discard", True, []))
+        self.assertEqual((s["channelSelection"], s["aspirateSettings"]["transferVolume"], len(s["sources"][0]["addresses"])), ("EightChannel", 40, 8))
+        self.fails(spec([{"type": "discard", "pos": "7", "wells": "A1:C1", "vol": 40}]), "whole columns")
+
+    def test_mix_after_add_reagent(self):
+        r = self.c(spec([dist(), {"type": "mix", "pos": "3", "wells": "A1:H1", "vol": 5, "cycles": 10}]))
+        (s,) = r["steps"]
+        self.assertEqual(s["stepType"], "AddReagentStep")
+        self.assertTrue(s["mixAfterDispense"])
+        self.assertEqual((s["dispenseSettings"]["mixVolume"], s["dispenseSettings"]["mixCycles"]), (5, 10))
+
     def test_mix_unsupported_cases(self):
         self.fails(spec([{"type": "mix", "pos": "3", "wells": "A1", "vol": 5, "cycles": 3}]), "step 1", "mix")
-        self.fails(spec([dist(), {"type": "mix", "pos": "3", "wells": "A1:H1", "vol": 5, "cycles": 3}]), "step 2", "mix")
+        self.fails(spec([dist(), {"type": "mix", "pos": "3", "wells": "A1:H2", "vol": 5, "cycles": 3}]), "step 2", "mix")
+        self.fails(spec([{**dist(), "multiDispense": False}, {"type": "mix", "pos": "3", "wells": "A1:H1", "vol": 5, "cycles": 3}]), "step 2", "mix")
         self.fails(spec([xfer(s="A1:H1", d="A1:H1"), {"type": "mix", "pos": "7", "wells": "A1", "vol": 5, "cycles": 3}]), "mix")
 
 
@@ -293,13 +321,33 @@ class HeadRules(Base):
         t = self.c(spec([{"type": "transfer", "fromPos": "3", "fromWells": "A1:A2", "toPos": "6", "toWells": "B5:B6", "vol": 2.5}], deck=deck))
         self.assertTrue(t["steps"][0]["newTipsEachTransfer"])   # an ordinary transfer is unchanged
 
-    def test_only_fully_skirted_plates_skip_the_magnet_alignment(self):
-        deck = dict(DECK, **{"6": {"lw": "plate_pcr"}})
-        self.c(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck))   # Hamilton PCR is full skirt, low profile
-        self.fails(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=dict(DECK, **{"6": {"lw": "c_191"}})), "magnet")   # Bio-Rad semi skirt
+    def test_full_skirt_still_has_to_list_the_magnet_alignment(self):
+        move = [{"type": "move", "fromPos": "6", "toPos": "5"}]
+        for lw in ("plate_pcr", "c_192", "c_191"):   # Hamilton PCR, Bio-Rad full skirt, Bio-Rad semi skirt: none lists the Ring Stand
+            self.fails(spec(move, deck=dict(DECK, **{"6": {"lw": lw}})), "magnet")
         self.c(spec([{"type": "move", "fromPos": "3", "toPos": "5"}]))   # the deep-well plate fits
         labware_map.write_map(self.dir, {"magnet": "C1p1fmpr8HAM"})        # the Alpaqua 96S Super Magnet takes a PCR plate
-        self.c(spec([{"type": "move", "fromPos": "6", "toPos": "5"}], deck=deck))
+        self.c(spec(move, deck=dict(DECK, **{"6": {"lw": "plate_pcr"}})))
+
+    def test_hhs_to_magnet_directly(self):
+        # no move back to the plate's home first: HHS -> magnet is one transport step from the plate's starting position
+        out = self.c(spec([{"type": "move", "fromPos": "3", "toPos": "1"}, {"type": "shake", "temp": 0, "rpm": 500, "minutes": 1},
+                           {"type": "move", "fromPos": "1", "toPos": "5"}]))
+        t = [s for s in out["steps"] if s["stepType"] == "TransportStep"]
+        self.assertEqual([(s["startPosition"], s["endPosition"]) for s in t], [(3, 5)])
+
+    def test_reagent_aliquots_fit_the_tip_and_go_to_waste(self):
+        r = self.c(spec([{"type": "distribute", "fromPos": "4", "fromWells": "A1", "toPos": "3", "toWells": "A1:C1", "vol": 25}], deck=TIP50_DECK))["steps"][0]
+        md = r["multiDispenseSettings"]
+        self.assertEqual((md["preAliquotSettings"]["volume"], md["postAliquotSettings"]["volume"]), (12.5, 12.5))
+        self.assertEqual({md["preAliquotSettings"]["sampleDiscardLocation"], md["postAliquotSettings"]["sampleDiscardLocation"]}, {"Waste"})
+        self.fails(spec([{"type": "distribute", "fromPos": "4", "fromWells": "A1", "toPos": "3", "toWells": "A1", "vol": 50}], deck=TIP50_DECK), "aliquot")
+
+    def test_single_dispense_reagent(self):
+        st = [{"type": "distribute", "fromPos": "4", "fromWells": "A1", "toPos": "3", "toWells": "A1,B1", "vol": 50, "multiDispense": False}] * 2
+        out = self.c(spec(st, deck=TIP50_DECK))["steps"]
+        self.assertEqual(len(out), 4)   # one step, one fresh tip, per well per pass
+        self.assertTrue(all(not s["multiDispense"] and s["newTipsEachTransfer"] and len(s["destinations"][0]["addresses"]) == 1 for s in out))
 
 
 class Errors(Base):
@@ -371,7 +419,7 @@ class Errors(Base):
         out = self.c(spec(moves, deck=deck("c_42")))
         site = [d for d in out["deck"]["positions"] if d["position"] == 5][0]
         self.assertIn("96S Super Magnet", site["labwareGroup"]["labware"]["displayName"])
-        self.c(spec(moves, deck=deck("c_43")))   # the Hamilton PCR plate is full skirt (low profile): the gripper takes it onto any magnet
+        self.fails(spec(moves, deck=deck("c_43")), "does not fit the")   # full skirt does not help: the Prep refuses a plate that does not list the Ring Stand
         self.fails(spec(moves, deck=dict(DECK, **{"3": {"lw": "c_191"}, "5": {"lw": "c_43"}})), "does not fit the")   # semi skirt still has to list the alignment
 
     def test_timed_pause(self):

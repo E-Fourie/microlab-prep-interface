@@ -318,6 +318,12 @@ def check(data):
         before = len(spec["steps"])
 
         def head(st):  # optional 8-channel settings, shared by every pipetting step
+            v = g("head", MISSING)
+            if not (v is MISSING or v is None or v == ""):
+                if v in ("two", "eight"):
+                    st["head"] = v
+                else:
+                    errors.append({"path": f"{p}.head", "msg": 'must be "two" or "eight"'})
             v = g("channels", MISSING)
             if not (v is MISSING or v is None or v == ""):
                 if _is_number(v) and v in (1, 8):
@@ -351,6 +357,12 @@ def check(data):
                 v = g(k, MISSING)
                 if not (v is MISSING or v is None or v == ""):
                     st[k] = _num(v, f"{p}.{k}", errors, lo, hi)
+            v = g("multiDispense", MISSING)   # false: one aspirate and one dispense per well (a reagent step only), a fresh tip for each well
+            if not (v is MISSING or v is None or v == ""):
+                if isinstance(v, bool):
+                    st["multiDispense"] = v
+                else:
+                    errors.append({"path": f"{p}.multiDispense", "msg": "must be true or false"})
             spec["steps"].append(head(st))
         elif t == "mix":
             cycles = g("cycles", MISSING)
@@ -454,19 +466,13 @@ _MAGNET_ALIGN = re.compile(r"_Magnet$|_RingStand$")
 _PART = re.compile(r"([A-P])(\d{1,2})(?::([A-P])(\d{1,2}))?")
 
 
-def fully_skirted(plate):
-    """True for a fully skirted plate (catalogue name says "Full Skirt"; low profile is fine). The gripper can carry these between
-    positions and onto any magnet; semi / half / no skirt plates still have to list the magnet's alignment."""
-    return "full skirt" in f"{plate.get('displayName') or ''} {plate.get('name') or ''}".lower()
-
-
 def magnet_misfit(plate_key, mapping=None, magnet_key="magnet"):
     """True when the plate does not list the magnet's alignment, so the Prep refuses "Move To/From Magnet" for it.
     `magnet_key` is the deck key of the magnet: the built-in "magnet" (the Ring Stand) or a catalogue magnet c_<id>. `mapping` is
     protocols/.labware-map.json ({key: catalogue name or id}), which may point a key at another magnet."""
     cat = labware_map.harvest()
     plate, magnet = (labware_map.resolve_key(cat, k, mapping)[0] for k in (plate_key, magnet_key))
-    if not plate or plate.get("classification") != "plate" or not magnet or fully_skirted(plate):
+    if not plate or plate.get("classification") != "plate" or not magnet:
         return False
     need = next((a for a in magnet.get("siteAlignments", []) if _MAGNET_ALIGN.search(a)), None)
     return need is not None and need not in plate.get("siteAlignments", [])
@@ -505,7 +511,7 @@ def head_errors(spec, mapping=None):
     kind = lambda p: lib[deck[occ[p]]["lw"]]["kind"] if p in occ else None
     for i, st in enumerate(spec["steps"]):
         t = st["type"]
-        if t == "transfer" and eight and kind(st["fromPos"]) == "plate" and kind(st["toPos"]) == "plate":
+        if t == "transfer" and (st["head"] == "eight" if "head" in st else eight) and kind(st["fromPos"]) == "plate" and kind(st["toPos"]) == "plate":
             for role, wells in (("Source", st["fromWells"]), ("Destination", st["toWells"])):
                 if not _whole_columns(_well_list(wells) or []):
                     out.append(f"Step {i + 1}: {role} wells {wells} are not whole columns. A plate-to-plate transfer on 96-well plates uses the 8-channel head, which can only pipette whole columns (A-H of one column, e.g. A1:H1).")
