@@ -4900,8 +4900,8 @@
   }
  },
  {
-  "name": "Hamilton PCR plate (full skirt, low profile) can go onto the Ring Stand magnet",
-  "valid": true,
+  "name": "Hamilton PCR plate (full skirt) is refused by the Ring Stand magnet",
+  "valid": false,
   "input": {
    "name": "ok",
    "deck": {
@@ -4997,8 +4997,8 @@
   }
  },
  {
-  "name": "magnet choice: Hamilton PCR plate (full skirt) fits the catalogue Ring Stand (c_43)",
-  "valid": true,
+  "name": "magnet choice: Hamilton PCR plate (full skirt) does not fit the catalogue Ring Stand (c_43)",
+  "valid": false,
   "input": {
    "name": "magnet choice",
    "deck": {
@@ -5099,8 +5099,8 @@
   }
  },
  {
-  "name": "magnet choice: Bio-Rad full-skirt plate fits the built-in Ring Stand magnet",
-  "valid": true,
+  "name": "magnet choice: Bio-Rad full-skirt plate does not fit the built-in Ring Stand magnet",
+  "valid": false,
   "input": {
    "name": "magnet choice",
    "deck": {
@@ -5325,6 +5325,315 @@
      "toPos": "6",
      "toWells": "B5:B8",
      "vol": 2.5
+    }
+   ]
+  }
+ },
+ {
+  "name": "gripper moves a plate from the HHS straight onto the magnet",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_deep",
+     "label": ""
+    },
+    "5": {
+     "lw": "magnet",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "1"
+    },
+    {
+     "type": "shake",
+     "pos": "1",
+     "temp": 0,
+     "rpm": 500,
+     "minutes": 1
+    },
+    {
+     "type": "move",
+     "fromPos": "1",
+     "toPos": "5"
+    }
+   ]
+  }
+ },
+ {
+  "name": "magnet choice: Bio-Rad full-skirt plate (c_192) does not fit the built-in Ring Stand magnet",
+  "valid": false,
+  "input": {
+   "name": "magnet choice",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": ""
+    },
+    "3": {
+     "lw": "c_192",
+     "label": ""
+    },
+    "5": {
+     "lw": "magnet",
+     "label": ""
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "move",
+     "fromPos": "3",
+     "toPos": "5"
+    }
+   ]
+  }
+ },
+ {
+  "name": "reagent step with multiDispense false",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_50",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1,B1",
+     "vol": 50,
+     "multiDispense": false
+    }
+   ]
+  }
+ },
+ {
+  "name": "multiDispense must be true or false",
+  "valid": false,
+  "input": {
+   "name": "bad",
+   "deck": {
+    "2": {
+     "lw": "tips_50",
+     "label": ""
+    },
+    "3": {
+     "lw": "plate_pcr",
+     "label": ""
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": ""
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "3",
+     "toWells": "A1",
+     "vol": 50,
+     "multiDispense": "no"
+    }
+   ]
+  }
+ },
+ {
+  "name": "scattered plate-to-plate wells need the 2-channel head",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_50",
+     "label": "T"
+    },
+    "5": {
+     "lw": "plate_pcr",
+     "label": "S"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "D"
+    }
+   },
+   "contents": [
+    {
+     "pos": "5",
+     "wells": "A1:H1",
+     "liquid": "Aqueous",
+     "vol": 20
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "5",
+     "fromWells": "A1,B1",
+     "toPos": "6",
+     "toWells": "D1,A1",
+     "vol": 5
+    }
+   ]
+  }
+ },
+ {
+  "name": "head two: scattered plate-to-plate wells are fine",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_50",
+     "label": "T"
+    },
+    "5": {
+     "lw": "plate_pcr",
+     "label": "S"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "D"
+    }
+   },
+   "contents": [
+    {
+     "pos": "5",
+     "wells": "A1:H1",
+     "liquid": "Aqueous",
+     "vol": 20
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "5",
+     "fromWells": "A1,B1",
+     "toPos": "6",
+     "toWells": "D1,A1",
+     "vol": 5,
+     "head": "two"
+    }
+   ]
+  }
+ },
+ {
+  "name": "head eight: scattered wells are still refused",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_50",
+     "label": "T"
+    },
+    "5": {
+     "lw": "plate_pcr",
+     "label": "S"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "D"
+    }
+   },
+   "contents": [
+    {
+     "pos": "5",
+     "wells": "A1:H1",
+     "liquid": "Aqueous",
+     "vol": 20
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "5",
+     "fromWells": "A1,B1",
+     "toPos": "6",
+     "toWells": "D1,A1",
+     "vol": 5,
+     "head": "eight"
+    }
+   ]
+  }
+ },
+ {
+  "name": "head must be two or eight",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_50",
+     "label": "T"
+    },
+    "5": {
+     "lw": "plate_pcr",
+     "label": "S"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "D"
+    }
+   },
+   "contents": [
+    {
+     "pos": "5",
+     "wells": "A1:H1",
+     "liquid": "Aqueous",
+     "vol": 20
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "5",
+     "fromWells": "A1,B1",
+     "toPos": "6",
+     "toWells": "D1,A1",
+     "vol": 5,
+     "head": "four"
     }
    ]
   }

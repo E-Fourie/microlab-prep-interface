@@ -15,7 +15,7 @@ const STEP_DEFAULTS = {
   pause: { type: 'pause', message: 'Operator action needed' },
 };
 /** Hardware the builder knows: the user's catalogue plus what the open protocol carries (the protocol's own wins). */
-const OPT_FIELDS = ['aspFlow', 'dspFlow', 'aspHeight', 'dspHeight', 'tipDiscard'];
+const OPT_FIELDS = ['aspFlow', 'dspFlow', 'aspHeight', 'dspHeight', 'tipDiscard', 'multiDispense', 'head'];
 const hwDefs = () => ({ ...BUILDER.hw, ...(BUILDER.proto?.labware || {}) });
 /** The protocol as saved, exported and simulated: only the custom hardware it uses is embedded in `labware`. */
 function embedLw(p) {
@@ -120,8 +120,8 @@ VIEWS.builder = {
       return `<details class="more step-opts" data-optd="${i}" ${open ? 'open' : ''} style="grid-column:1/-1"><summary>Pipetting options${set ? ' (customised)' : ''}</summary>
         <div class="fields">${num('Aspirate speed (µL/s)', 'aspFlow', 'default', 'min="1" max="1000"')}${num('Dispense speed (µL/s)', 'dspFlow', 'default', 'min="1" max="1000"')}
         ${num('Aspirate height above liquid surface (mm)', 'aspHeight', 'default', 'min="-50" max="50"')}${num('Dispense height above well bottom (mm)', 'dspHeight', 'default', 'min="0" max="50"')}
-        ${field('Used tips', `<select data-o="${i}" data-f="tipDiscard"><option value="" ${!s.tipDiscard ? 'selected' : ''}>Default (waste)</option><option value="waste" ${s.tipDiscard === 'waste' ? 'selected' : ''}>Discard to waste</option><option value="rack" ${s.tipDiscard === 'rack' ? 'selected' : ''}>Return to the tip rack</option></select>`)}</div>
-        <div class="small muted">Leave a box empty to use the Prep's default. A negative aspirate height goes below the surface (needs liquid-level sensing). Tips returned to the rack are not picked up again.</div></details>`;
+        ${field('Used tips', `<select data-o="${i}" data-f="tipDiscard"><option value="" ${!s.tipDiscard ? 'selected' : ''}>Default (waste)</option><option value="waste" ${s.tipDiscard === 'waste' ? 'selected' : ''}>Discard to waste</option><option value="rack" ${s.tipDiscard === 'rack' ? 'selected' : ''}>Return to the tip rack</option></select>`)}${s.type === 'distribute' ? field('Dispensing', `<select data-o="${i}" data-f="multiDispense" data-bool="1"><option value="">Multi-dispense (one tip for all wells)</option><option value="false" ${s.multiDispense === false ? 'selected' : ''}>One aspirate and one dispense per well, a fresh tip each</option></select>`) : ''}${field('Head', `<select data-o="${i}" data-f="head"><option value="">Protocol default (8-channel; 2-channel with a 384 plate)</option><option value="two" ${s.head === 'two' ? 'selected' : ''}>2-channel head (single wells, any pattern)</option><option value="eight" ${s.head === 'eight' ? 'selected' : ''}>8-channel head (whole columns)</option></select>`)}</div>
+        <div class="small muted">Leave a box empty to use the Prep's default. A negative aspirate height goes below the surface (needs liquid-level sensing). Tips returned to the rack are not picked up again. A protocol can use both heads, one per step. Multi-dispense needs room in the tip for the volume plus two aliquots of at least 5 µL; for a full 50 µL tip turn it off.</div></details>`;
     };
     const stepCard = (s, i) => {
       const f = (label, key, extra = '') => {
@@ -204,7 +204,7 @@ VIEWS.builder = {
     $$('[data-delv]', el).forEach(b => b.onclick = () => { const gone = p.variables.splice(+b.dataset.delv, 1)[0]; p.steps.forEach(st => Object.keys(varFields).forEach(k => { if (gone && refName(st[k]) === gone.name) st[k] = gone.default; })); ch(); });
     if ($('#addv')) $('#addv').onclick = () => { p.variables = p.variables || []; let n = p.variables.length + 1; while (p.variables.some(v => v.name === 'var' + n)) n++; p.variables.push({ name: 'var' + n, label: 'Volume (µL)', default: 20, min: 0, max: 1000, unit: 'µL' }); ch(); };
     $$('[data-s]', el).forEach(i => i.onchange = () => { p.steps[+i.dataset.s][i.dataset.f] = i.type === 'number' ? +i.value : i.value; ch(); });
-    $$('[data-o]', el).forEach(i => i.onchange = () => { const s = p.steps[+i.dataset.o]; if (i.value === '') delete s[i.dataset.f]; else s[i.dataset.f] = i.type === 'number' ? +i.value : i.value; ch(); });
+    $$('[data-o]', el).forEach(i => i.onchange = () => { const s = p.steps[+i.dataset.o]; if (i.value === '') delete s[i.dataset.f]; else s[i.dataset.f] = i.dataset.bool ? i.value !== 'false' : i.type === 'number' ? +i.value : i.value; ch(); });
     $$('[data-optd]', el).forEach(d => d.ontoggle = () => { (B.optOpen ||= new Set())[d.open ? 'add' : 'delete'](+d.dataset.optd); });
     $$('[data-add]', el).forEach(b => b.onclick = () => { const s = { ...STEP_DEFAULTS[b.dataset.add] }, ks = Object.keys(p.deck).sort(), tipless = ks.filter(k => !['tips', 'magnet'].includes(LIB[p.deck[k].lw].kind)); if ('fromPos' in s) { s.fromPos = tipless[0] || ''; s.toPos = tipless[1] || tipless[0] || ''; } if ('pos' in s) s.pos = tipless[0] || '';
       if (s.type === 'move') { s.fromPos = ks.find(k => LIB[p.deck[k].lw].kind === 'plate' && k !== HHS_POS) || ks.find(k => LIB[p.deck[k].lw].kind === 'plate') || ''; s.toPos = ks.find(k => LIB[p.deck[k].lw].kind === 'magnet') || ''; } p.steps.push(s); ch(); });
