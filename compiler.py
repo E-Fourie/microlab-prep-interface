@@ -195,6 +195,35 @@ class _Compiler:
                                "liquidName": liquid or "", "liquidType": liquid or "", "liquidVolumeOptions": "CalculateForMe"}
         return self.groups[gk]
 
+    def tube_tube(self, rack, vol):
+        """The catalogue tube to put in tube rack `rack`: it must share a TubeCarrier_TubeAlignment_* with the rack, hold at least `vol`, and be the
+        smallest such tube (an Eppendorf one among equals, else the lowest id)."""
+        al = {a for a in (rack.get("siteAlignments") or []) if a.startswith("TubeCarrier_TubeAlignment_")}
+        fit = [t for t in self.catalogue.values() if t["classification"] in ("microtube", "sampletube") and al & set(t.get("siteAlignments") or [])
+               and t["volume"] >= vol]
+        if not fit:
+            raise ConverterUnavailable(f"{labware_map.describe(rack)} has no tube in the Prep's catalogue that fits it and holds {vol} uL.")
+        return min(fit, key=lambda t: (t["volume"], "eppendorf" not in str(t.get("displayName", "")).lower(), t["id"]))
+
+    def tube_positions(self, pos, rack):
+        """The labwarePositions of the tube rack at `pos`: one catalogue tube (with its liquid and volume) for every tube that has liquid in `contents`.
+        Sets slot_group[(pos, (row, column))] for each. Without these the Prep does not know any tube is in the rack."""
+        rows, cols = self.dims(self.spec["deck"][pos]["lw"])
+        loaded = {}
+        for c in self.spec["contents"]:
+            if c["pos"] == pos:
+                for rc in expand_wells(c["wells"], rows, cols, f"contents at position {pos}"):
+                    loaded[rc] = (c["liquid"], c["vol"])
+        if not loaded:
+            return []
+        tube = self.tube_tube(rack, max(v for _, v in loaded.values()))
+        out = []
+        for (r, col), (liquid, vol) in sorted(loaded.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+            g = self.group(self.spec["deck"][pos]["lw"], tube, liquid, tag=(pos, r, col))
+            self.slot_group[(pos, (r, col))] = g
+            out.append({"row": r, "column": col, "id": 0, "labwareGroup": g, "position": (col - 1) * rows + r, "positionName": "", "liquidVolume": _num(vol)})
+        return out
+
     def build_deck(self):
         deck, self.slot_group = [], {}
         liquids = {}
@@ -226,6 +255,8 @@ class _Compiler:
                         self.slot_group[(pos, i)] = g
                         e["labwarePositions"].append({"row": 1, "column": i + 1, "id": 0, "labwareGroup": g, "position": i + 1, "positionName": "",
                                                       "liquidVolume": _num(cont["volume"]) if lq else 0})
+                elif kind == "tubes":
+                    e["labwarePositions"] = self.tube_positions(pos, o)
             deck.append(e)
         return deck
 
@@ -358,9 +389,11 @@ class _Compiler:
         sh = self.occ[src_pos]
         skind = self.kind(sh)
         vol = s["vol"]
-        if skind in ("reservoirs", "trough"):
+        tube_reagent = skind == "tubes" and distribute   # a reagent tube cannot be the source of a Transfer Samples step: it is an Add Reagent step
+        if skind in ("reservoirs", "trough") or tube_reagent:
+            what = "a tube" if tube_reagent else "a reservoir"
             if dkind != "plate":
-                self.fail(i, f"from a reservoir the destination must be a plate, not {dkind}")
+                self.fail(i, f"from {what} the destination must be a plate, not {dkind}")
             slot_rows, slot_cols = self.dims(self.spec["deck"][sh]["lw"])
             slots = expand_wells(s["fromWells"], slot_rows, slot_cols, "source")
             dst = expand_wells(s["toWells"], drows, dcols, "destination")
@@ -373,14 +406,14 @@ class _Compiler:
                     self.fail(i, "transfer needs equal numbers of source and destination wells")
                 pairs = [(sl, [d]) for sl, d in zip(slots, dst)]
             if sh != src_pos:
-                self.fail(i, "a reservoir cannot be moved")
+                self.fail(i, f"{what} cannot be moved")
             single = s.get("multiDispense") is False   # one aspirate and one dispense per well, a fresh tip for each well; never merged into a multi-dispense
             if single:
                 pairs = [(slot, [w]) for slot, wells in pairs for w in wells]
             for slot, wells in pairs:
-                g = self.slot_group.get((sh, slot[0] - 1))
+                g = self.slot_group.get((sh, slot if tube_reagent else slot[0] - 1))
                 if g is None or not g["liquidName"]:
-                    self.fail(i, f"reservoir slot {ROWS[slot[0] - 1]}{slot[1]} at position {sh} has no liquid in the protocol's contents")
+                    self.fail(i, f"{'tube' if tube_reagent else 'reservoir slot'} {ROWS[slot[0] - 1]}{slot[1]} at position {sh} has no liquid in the protocol's contents")
                 tip = self.take(vol, i)
                 a, d = copy.deepcopy(ADD_REAGENT["aspirateSettings"]), copy.deepcopy(ADD_REAGENT["dispenseSettings"])
                 a["transferVolume"] = d["transferVolume"] = _num(vol)

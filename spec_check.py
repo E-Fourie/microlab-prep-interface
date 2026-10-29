@@ -503,14 +503,22 @@ def head_errors(spec, mapping=None):
     """Rules that need the deck as the steps play out (the JavaScript simulate() has them too).
     - Plate-to-plate transfers on 96-well plates run on the 8-channel head, which can only pipette whole columns (the 2-channel head
       is used when a 384-well plate is on the deck, and takes single wells).
-    - A plate only goes onto the magnet if it lists the magnet's alignment."""
+    - A plate only goes onto the magnet if it lists the magnet's alignment.
+    - A tube used as a source needs a liquid in `contents`."""
     lib, deck, out = lib_for(spec), spec["deck"], []
     rows = lambda k: 16 if k == "plate_384" else lib[k].get("rows", 8)
     eight = not any(rows(d["lw"]) > 8 for d in deck.values())
     occ = {p: p for p, d in deck.items() if lib[d["lw"]]["kind"] != "magnet"}
     kind = lambda p: lib[deck[occ[p]]["lw"]]["kind"] if p in occ else None
+    loaded = {(c["pos"], w) for c in spec["contents"] for w in _well_list(c["wells"]) or []}
     for i, st in enumerate(spec["steps"]):
         t = st["type"]
+        if t in ("transfer", "distribute") and kind(st["fromPos"]) == "tubes":
+            empty = [w for w in _well_list(st["fromWells"]) or [] if (occ[st["fromPos"]], w) not in loaded]
+            if empty:
+                many = len(empty) > 1
+                out.append(f"Step {i + 1}: Source tube{'s' if many else ''} {', '.join(ROWS_ALPHA[r] + str(c + 1) for r, c in empty)} at position {st['fromPos']} "
+                           f"{'have' if many else 'has'} no liquid in the protocol's contents. Add the liquid to the Contents list: the Prep needs to know what each tube it draws from holds.")
         if t == "transfer" and (st["head"] == "eight" if "head" in st else eight) and kind(st["fromPos"]) == "plate" and kind(st["toPos"]) == "plate":
             for role, wells in (("Source", st["fromWells"]), ("Destination", st["toWells"])):
                 if not _whole_columns(_well_list(wells) or []):

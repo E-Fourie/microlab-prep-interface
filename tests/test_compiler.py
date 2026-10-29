@@ -350,6 +350,38 @@ class HeadRules(Base):
         self.assertTrue(all(not s["multiDispense"] and s["newTipsEachTransfer"] and len(s["destinations"][0]["addresses"]) == 1 for s in out))
 
 
+class TubeRack(Base):
+    """A 24-tube reagent rack: its tubes are in the deck layout, and a distribute from a tube is an Add Reagent step."""
+    DECK = {"2": {"lw": "tips_300"}, "3": {"lw": "tubes_24"}, "7": {"lw": "plate_flat_96"}}
+    CONT = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 1000}, {"pos": "3", "wells": "B1", "liquid": "Magnetic Beads", "vol": 500}]
+
+    def sp(self, steps, contents=None):
+        return {"specVersion": 1, "name": "T", "deck": self.DECK, "contents": self.CONT if contents is None else contents, "steps": steps}
+
+    def tube_step(self, slot="A1"):
+        return {"type": "distribute", "fromPos": "3", "fromWells": slot, "toPos": "7", "toWells": "A1:H1", "vol": 10}
+
+    def test_tubes_are_in_the_deck_layout(self):
+        pos = self.c(self.sp([self.tube_step()]))["deck"]["positions"][2]["labwarePositions"]
+        self.assertEqual([(p["row"], p["column"], p["position"], p["liquidVolume"]) for p in pos], [(1, 1, 1, 1000), (2, 1, 2, 500)])
+        self.assertEqual([p["labwareGroup"]["liquidName"] for p in pos], ["Aqueous", "Magnetic Beads"])
+        lw = pos[0]["labwareGroup"]["labware"]
+        self.assertEqual((lw["classification"], lw["volume"]), ("microtube", 1500))
+        self.assertIn("Eppendorf", lw["displayName"])
+
+    def test_distribute_from_a_tube_is_add_reagent(self):
+        steps = self.c(self.sp([self.tube_step("B1")]))["steps"]
+        self.assertEqual([st["stepType"] for st in steps], ["AddReagentStep"])
+        self.assertTrue(steps[0]["multiDispense"])
+        self.assertEqual(steps[0]["name"], "Magnetic Beads")
+
+    def test_tube_without_liquid_is_refused(self):
+        self.fails(self.sp([self.tube_step("C1")]), "tube C1", "no liquid")
+
+    def test_rack_without_contents_has_no_tubes(self):
+        self.assertEqual(self.c(self.sp([], contents=[]))["deck"]["positions"][2]["labwarePositions"], [])
+
+
 class Errors(Base):
     def test_unmapped_labware_lists_keys_and_candidates(self):
         deck = dict(DECK, **{"6": {"lw": "plate_pcr"}, "8": {"lw": "reservoir_60"}})

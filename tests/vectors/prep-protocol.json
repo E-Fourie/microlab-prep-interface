@@ -5637,5 +5637,76 @@
     }
    ]
   }
+ },
+ {
+  "name": "distribute from a tube that holds liquid",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "3": {
+     "lw": "tubes_24",
+     "label": "Reagents"
+    },
+    "7": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "7",
+     "toWells": "A1:H1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "distribute from a tube with no liquid in contents",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "3": {
+     "lw": "tubes_24",
+     "label": "Reagents"
+    },
+    "7": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "7",
+     "toWells": "A1:H1",
+     "vol": 10
+    }
+   ]
+  }
  }
 ]

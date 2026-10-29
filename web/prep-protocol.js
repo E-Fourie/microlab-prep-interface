@@ -311,6 +311,7 @@
    * - Plate-to-plate transfers on 96-well plates run on the 8-channel head (the 2-channel head is used when a 384-well plate is on the deck and
    *   takes single wells), and the 8-channel head can only pipette whole columns (A-H of one column).
    * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet; being full skirt does not help).
+   * - A tube used as a source needs a liquid in `contents` (the Prep has to be told what each tube holds).
    */
   function headErrors(spec) {
     const lib = libFor(spec), deck = spec.deck, out = [];
@@ -324,7 +325,12 @@
     const plateId = k => (Catalogue.BUILTIN[k] ? Catalogue.BUILTIN[k].id : CATALOGUE_KEY.test(k) ? +k.slice(2) : null);
     const magnetAlign = k => (lib[k] && lib[k].align) || (k === 'magnet' ? Catalogue.MAGNET_ALIGNMENT : null); // the alignment a plate must list to sit on magnet k
     const misfit = (k, m) => { const id = plateId(k), al = magnetAlign(m); return id !== null && !!al && Catalogue.MAGNET_FIT[id] !== undefined && !Catalogue.MAGNET_FIT[id].includes(al); };
+    const loaded = (home, [r, c]) => spec.contents.some(x => x.pos === home && list(x.wells).some(([r2, c2]) => r2 === r && c2 === c));
     spec.steps.forEach((s, i) => {
+      if ((s.type === 'transfer' || s.type === 'distribute') && kind(s.fromPos) === 'tubes') {
+        const empty = list(s.fromWells).filter(w => !loaded(occ[s.fromPos], w));
+        if (empty.length) out.push({ step: i, msg: `Source tube${empty.length > 1 ? 's' : ''} ${empty.map(([r, c]) => wellName(r, c)).join(', ')} at position ${s.fromPos} ${empty.length > 1 ? 'have' : 'has'} no liquid in the protocol's contents. Add the liquid to the Contents list: the Prep needs to know what is in each tube it draws from.` });
+      }
       if (s.type === 'transfer' && (s.head ? s.head === 'eight' : eight) && kind(s.fromPos) === 'plate' && kind(s.toPos) === 'plate') {
         [['Source', s.fromWells], ['Destination', s.toWells]].forEach(([role, text]) => {
           if (!whole(list(text))) out.push({ step: i, msg: `${role} wells ${text} are not whole columns. A plate-to-plate transfer on 96-well plates uses the 8-channel head, which can only pipette whole columns (A-H of one column, e.g. A1:H1). Select full columns.` });
