@@ -16,7 +16,8 @@
 //     (every pipetting step may carry head: 'two' | 'eight' to pick the 2-channel or 8-channel head for that step; without it the whole protocol uses the 8-channel head,
 //     or the 2-channel head when a 384-well plate is on the deck. The 2-channel head takes single wells; the 8-channel head only whole columns)
 //     (every step may also carry label, a name shown in the Builder and the playback)
-//     (transfer/distribute may also carry aspFlow, dspFlow in uL/s, aspHeight, dspHeight in mm; a reagent step may carry multiDispense: false for one aspirate and one dispense per well with a fresh tip each, needed when volume + 2 x 5 uL aliquots would not fit the tip)
+//     (transfer/distribute may also carry aspFlow, dspFlow in uL/s, aspHeight, dspHeight in mm; a reagent step may carry preMix: N (mix the source N times before the first aspirate, to keep beads suspended) and multiDispense: false for one aspirate and one dispense per well with a fresh tip each, needed when volume + 2 x 5 uL aliquots would not fit the tip)
+//     (a tip rack deck entry may carry tipsLeft: how many tips a part-used rack still has)
 //     (every pipetting step may carry tipDiscard 'waste' | 'rack': 'rack' puts each used tip back in the place it came from. It is still a used
 //     tip and is never picked up again, and the machine does not count it as a spare: when the fresh tips run out it asks for a refill
 //     even though used tips are sitting in the rack, so those are taken out and fresh ones put in)
@@ -222,6 +223,10 @@
       if (!POSITIONS.includes(k)) { errors.push({ path: p, msg: 'is not a deck position (1 to 8)' }); continue; }
       if (!isObj(d) || typeof d.lw !== 'string' || !Object.prototype.hasOwnProperty.call(lib, d.lw)) { errors.push({ path: p, msg: `needs labware: a built-in key (${Object.keys(LABWARE).join(', ')}) or a Prep catalogue key such as c_208` }); continue; }
       spec.deck[k] = { lw: d.lw, label: text(d.label, LIMITS.label, `${p}.label`, errors) };
+      if (d.tipsLeft !== undefined && d.tipsLeft !== null && d.tipsLeft !== '') { // a part-used tip rack: how many tips it still has
+        if (lib[d.lw].kind !== 'tips') errors.push({ path: `${p}.tipsLeft`, msg: 'only a tip rack has tips left' });
+        else spec.deck[k].tipsLeft = num(d.tipsLeft, `${p}.tipsLeft`, errors, { min: 0, max: lib[d.lw].rows * lib[d.lw].cols, int: true });
+      }
       if (CATALOGUE[d.lw]) (spec.labware = spec.labware || {})[d.lw] = Object.assign({}, CATALOGUE[d.lw]); // the catalogue definition, so the protocol reads on its own
     }
 
@@ -255,6 +260,7 @@
         const opt = (k, o) => { if (s[k] !== undefined && s[k] !== null && s[k] !== '') st[k] = num(s[k], `${p}.${k}`, errors, o); };
         opt('aspFlow', { min: 1, max: LIMITS.flow }); opt('dspFlow', { min: 1, max: LIMITS.flow });
         opt('aspHeight', { min: -LIMITS.height, max: LIMITS.height }); opt('dspHeight', { min: 0, max: LIMITS.height });
+        if (s.preMix !== undefined && s.preMix !== null && s.preMix !== '') st.preMix = num(s.preMix, `${p}.preMix`, errors, { min: 1, max: LIMITS.cycles, int: true }); // mix the source this many times (up to 150 uL a cycle) before the first aspirate
         if (s.multiDispense !== undefined && s.multiDispense !== null && s.multiDispense !== '') { if (typeof s.multiDispense === 'boolean') st.multiDispense = s.multiDispense; else errors.push({ path: `${p}.multiDispense`, msg: 'must be true or false' }); } // false: one aspirate and one dispense per well, a fresh tip for each well (a reagent step only)
         spec.steps.push(head(st));
       }
@@ -373,7 +379,7 @@
     });
     Object.entries(p.deck).forEach(([pos, d]) => { const e = placeError(d.lw, pos, lib); if (e) errors.push({ step: null, msg: e }); });
     headErrors(p).forEach(e => errors.push(e));
-    const racks = Object.keys(p.deck).filter(k => lib[p.deck[k].lw] && lib[p.deck[k].lw].kind === 'tips' && k !== HHS_POS).sort().map(pos => ({ pos, tipVol: lib[p.deck[pos].lw].tipVol, used: 0, sum: 0, back: new Set(), rows: lib[p.deck[pos].lw].rows, total: lib[p.deck[pos].lw].rows * lib[p.deck[pos].lw].cols }));
+    const racks = Object.keys(p.deck).filter(k => lib[p.deck[k].lw] && lib[p.deck[k].lw].kind === 'tips' && k !== HHS_POS).sort().map(pos => ({ pos, tipVol: lib[p.deck[pos].lw].tipVol, used: lib[p.deck[pos].lw].rows * lib[p.deck[pos].lw].cols - (p.deck[pos].tipsLeft !== undefined ? p.deck[pos].tipsLeft : lib[p.deck[pos].lw].rows * lib[p.deck[pos].lw].cols), sum: 0, back: new Set(), rows: lib[p.deck[pos].lw].rows, total: lib[p.deck[pos].lw].rows * lib[p.deck[pos].lw].cols }));
     if (p.steps.some(s => s.type !== 'pause' && s.type !== 'shake' && s.type !== 'move') && !racks.length) errors.push({ step: null, msg: 'No tip rack on the deck.' });
     // Running out of tips is a warning, once per step: the machine pauses so more tips can be loaded.
     const outOfTips = new Set();

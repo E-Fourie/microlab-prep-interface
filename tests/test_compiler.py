@@ -106,7 +106,7 @@ class BeadPurification(Base):
             for lp in p["labwarePositions"]:
                 ids[lp["labwareGroup"]["id"]] = lp["labwareGroup"]
         racks = {p["labwareGroup"]["id"] for p in pos if p["labwareGroup"] and p["labwareGroup"]["labware"]["classification"] == "tiprack"}
-        self.assertEqual(len(racks), 1)  # identical racks share one group
+        self.assertEqual(len(racks), 2)  # every rack is its own group: the Prep follows the group, not the deck position
         liquids = []
         for s in self.raw["steps"]:
             if "tipLabwareGroupId" in s:
@@ -353,7 +353,7 @@ class HeadRules(Base):
 class TubeRack(Base):
     """A 24-tube reagent rack: its tubes are in the deck layout, and a distribute from a tube is an Add Reagent step."""
     DECK = {"2": {"lw": "tips_300"}, "3": {"lw": "tubes_24"}, "7": {"lw": "plate_flat_96"}}
-    CONT = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 1000}, {"pos": "3", "wells": "B1", "liquid": "Magnetic Beads", "vol": 500}]
+    CONT = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 1000}, {"pos": "3", "wells": "B1", "liquid": "Magnetic Beads", "vol": 1000}]
 
     def sp(self, steps, contents=None):
         return {"specVersion": 1, "name": "T", "deck": self.DECK, "contents": self.CONT if contents is None else contents, "steps": steps}
@@ -363,8 +363,8 @@ class TubeRack(Base):
 
     def test_tubes_are_in_the_deck_layout(self):
         pos = self.c(self.sp([self.tube_step()]))["deck"]["positions"][2]["labwarePositions"]
-        self.assertEqual([(p["row"], p["column"], p["position"], p["liquidVolume"]) for p in pos], [(1, 1, 1, 1000), (2, 1, 2, 500)])
-        self.assertEqual([p["labwareGroup"]["liquidName"] for p in pos], ["Aqueous", "Magnetic Beads"])
+        self.assertEqual([(p["row"], p["column"], p["position"], p["liquidVolume"]) for p in pos], [(1, 1, 1, 1000), (2, 1, 2, 1000)])
+        self.assertEqual([p["labwareGroup"]["liquidName"] for p in pos], ["Aqueous (A1)", "Magnetic Beads (B1)"])  # one named group per tube, so two tubes of one liquid class stay separate
         lw = pos[0]["labwareGroup"]["labware"]
         self.assertEqual((lw["classification"], lw["volume"]), ("microtube", 1500))
         self.assertIn("Eppendorf", lw["displayName"])
@@ -373,13 +373,63 @@ class TubeRack(Base):
         steps = self.c(self.sp([self.tube_step("B1")]))["steps"]
         self.assertEqual([st["stepType"] for st in steps], ["AddReagentStep"])
         self.assertTrue(steps[0]["multiDispense"])
-        self.assertEqual(steps[0]["name"], "Magnetic Beads")
+        self.assertEqual(steps[0]["name"], "Magnetic Beads (B1)")
 
     def test_tube_without_liquid_is_refused(self):
         self.fails(self.sp([self.tube_step("C1")]), "tube C1", "no liquid")
 
     def test_rack_without_contents_has_no_tubes(self):
         self.assertEqual(self.c(self.sp([], contents=[]))["deck"]["positions"][2]["labwarePositions"], [])
+
+
+    def test_tube_must_hold_what_the_steps_draw_plus_dead_volume(self):
+        # 8 wells x 10 uL on the 8-channel head: 80 uL plus a pre and post aliquot (20 uL each) for each of 8 channels = 400 uL
+        low = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 440}]
+        self.fails(self.sp([self.tube_step()], contents=low), "tube A1", "440", "520")
+        ok = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 520}]
+        self.assertEqual(len(self.c(self.sp([self.tube_step()], contents=ok))["steps"]), 1)
+
+    def test_same_liquid_in_two_tubes_stays_two_groups(self):
+        cont = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 1000}, {"pos": "3", "wells": "D1", "liquid": "Aqueous", "vol": 1000}]
+        pos = self.c(self.sp([], contents=cont))["deck"]["positions"][2]["labwarePositions"]
+        self.assertEqual([p["labwareGroup"]["liquidName"] for p in pos], ["Aqueous (A1)", "Aqueous (D1)"])
+        self.assertEqual({p["labwareGroup"]["liquidType"] for p in pos}, {"Aqueous"})
+        self.assertEqual(len({p["labwareGroup"]["id"] for p in pos}), 2)
+
+    def test_pre_mix_is_mix_before_aspirate(self):
+        st = dict(self.tube_step(), preMix=15)
+        rec = self.c(self.sp([st]))["steps"][0]
+        self.assertTrue(rec["mixBeforeAspirate"])
+        self.assertEqual((rec["aspirateSettings"]["mixCycles"], rec["aspirateSettings"]["mixVolume"]), (15, 150))
+        self.assertFalse(self.c(self.sp([self.tube_step()]))["steps"][0]["mixBeforeAspirate"])
+
+
+class TipRacks(Base):
+    """Every tip rack is its own tip group, and the next rack is used when the first has too few tips left."""
+    def sp(self, left=None, n=5):
+        deck = {"2": {"lw": "tips_300"}, "8": {"lw": "tips_300"}, "3": {"lw": "plate_deep"}, "7": {"lw": "plate_flat_96"}}
+        if left is not None:
+            deck["2"]["tipsLeft"] = left
+        return {"specVersion": 1, "name": "T", "deck": deck, "contents": [], "steps": [xfer(d="A%d:H%d" % (k % 12 + 1, k % 12 + 1), s="A%d:H%d" % (k % 12 + 1, k % 12 + 1)) for k in range(n)]}
+
+    def tip_groups(self, raw):
+        return [s["tipLabwareGroupId"] for s in raw["steps"]]
+
+    def test_each_rack_is_a_group(self):
+        raw = self.c(self.sp())
+        racks = [p["labwareGroup"]["id"] for p in raw["deck"]["positions"] if p["labwareGroup"] and p["labwareGroup"]["labware"]["classification"] == "tiprack"]
+        self.assertEqual(len(set(racks)), 2)
+        self.assertEqual(len(set(self.tip_groups(raw))), 1)  # 40 tips: all from the first rack
+
+    def test_second_rack_used_when_the_first_runs_out(self):
+        raw = self.c(self.sp(left=16))  # a part-used rack with 16 tips left: two columns, then the spare rack
+        ids = self.tip_groups(raw)
+        self.assertEqual(len(ids), 2)  # the first two columns are one Prep step on the old rack, the other three start a step on the new rack
+        self.assertNotEqual(ids[0], ids[1])
+        self.assertEqual(len(raw["steps"][0]["sources"][0]["addresses"]), 16)
+
+    def test_no_tips_left_anywhere_is_refused(self):
+        self.fails(self.sp(n=25), "out of tips")  # two racks hold 24 columns
 
 
 class Errors(Base):
