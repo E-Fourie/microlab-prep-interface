@@ -282,6 +282,12 @@ def check(data):
                 errors.append({"path": p, "msg": f"needs labware: a built-in key ({', '.join(LABWARE)}) or a Prep catalogue key such as c_208"})
                 continue
             spec["deck"][k] = {"lw": d["lw"], "label": _text(d.get("label", MISSING), LIMITS["label"], f"{p}.label", errors)}
+            v = d.get("tipsLeft", MISSING)  # a part-used tip rack: how many tips it still has
+            if not (v is MISSING or v is None or v == ""):
+                if lib[d["lw"]]["kind"] != "tips":
+                    errors.append({"path": f"{p}.tipsLeft", "msg": "only a tip rack has tips left"})
+                else:
+                    spec["deck"][k]["tipsLeft"] = _num(v, f"{p}.tipsLeft", errors, 0, lib[d["lw"]].get("rows", 8) * lib[d["lw"]].get("cols", 12), integer=True)
             if d["lw"] in cat:  # the catalogue definition, so the protocol reads on its own
                 spec.setdefault("labware", {})[d["lw"]] = dict(cat[d["lw"]])
 
@@ -357,6 +363,9 @@ def check(data):
                 v = g(k, MISSING)
                 if not (v is MISSING or v is None or v == ""):
                     st[k] = _num(v, f"{p}.{k}", errors, lo, hi)
+            v = g("preMix", MISSING)   # mix the source this many times (up to 150 uL a cycle) before the first aspirate; keeps beads suspended
+            if not (v is MISSING or v is None or v == ""):
+                st["preMix"] = _num(v, f"{p}.preMix", errors, 1, LIMITS["cycles"], integer=True)
             v = g("multiDispense", MISSING)   # false: one aspirate and one dispense per well (a reagent step only), a fresh tip for each well
             if not (v is MISSING or v is None or v == ""):
                 if isinstance(v, bool):

@@ -5708,5 +5708,165 @@
     }
    ]
   }
+ },
+ {
+  "name": "pre-mix the source tube",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "3": {
+     "lw": "tubes_24",
+     "label": "R"
+    },
+    "7": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "7",
+     "toWells": "A1:H1",
+     "vol": 10,
+     "preMix": 15
+    }
+   ]
+  }
+ },
+ {
+  "name": "pre-mix of zero cycles",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "3": {
+     "lw": "tubes_24",
+     "label": "R"
+    },
+    "7": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "7",
+     "toWells": "A1:H1",
+     "vol": 10,
+     "preMix": 0
+    }
+   ]
+  }
+ },
+ {
+  "name": "tips left on a part-used rack",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T",
+     "tipsLeft": 40
+    },
+    "3": {
+     "lw": "tubes_24",
+     "label": "R"
+    },
+    "7": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "7",
+     "toWells": "A1:H1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "tips left above the rack's size",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T",
+     "tipsLeft": 97
+    },
+    "3": {
+     "lw": "tubes_24",
+     "label": "R"
+    },
+    "7": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "3",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "3",
+     "fromWells": "A1",
+     "toPos": "7",
+     "toWells": "A1:H1",
+     "vol": 10
+    }
+   ]
+  }
  }
 ]
