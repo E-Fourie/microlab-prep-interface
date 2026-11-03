@@ -421,6 +421,11 @@ class _Compiler:
         tube_reagent = skind == "tubes" and distribute   # a reagent tube cannot be the source of a Transfer Samples step: it is an Add Reagent step
         if skind in ("reservoirs", "trough") or tube_reagent:
             what = "a tube" if tube_reagent else "a reservoir"
+            head = self.ch(s)
+            if tube_reagent:   # the Prep only lets the two-channel head draw from the 1.5 mL tube rack
+                if s.get("head") == "eight":
+                    self.fail(i, "the eight-channel head cannot draw from a tube (the Prep refuses it: 'Liquid source is invalid for the selected pipettor'). Use the two-channel head")
+                head = "TwoChannel"
             if dkind != "plate":
                 self.fail(i, f"from {what} the destination must be a plate, not {dkind}")
             slot_rows, slot_cols = self.dims(self.spec["deck"][sh]["lw"])
@@ -443,7 +448,7 @@ class _Compiler:
                 g = self.slot_group.get((sh, slot if tube_reagent else slot[0] - 1))
                 if g is None or not g["liquidName"]:
                     self.fail(i, f"{'tube' if tube_reagent else 'reservoir slot'} {ROWS[slot[0] - 1]}{slot[1]} at position {sh} has no liquid in the protocol's contents")
-                tip = self.take(vol, i, 1 if single else 2 if self.ch(s) == "TwoChannel" else 8)
+                tip = self.take(vol, i, 1 if single else 2 if head == "TwoChannel" else 8)
                 a, d = copy.deepcopy(ADD_REAGENT["aspirateSettings"]), copy.deepcopy(ADD_REAGENT["dispenseSettings"])
                 a["transferVolume"] = d["transferVolume"] = _num(vol)
                 if single:
@@ -451,7 +456,7 @@ class _Compiler:
                     md["usePreAliquot"] = md["usePostAliquot"] = False
                 else:
                     md = self.multi_dispense(vol, i)
-                rec = {"channelSelection": self.ch(s), "tipLabwareGroupId": tip, "tipLabwareDisplayName": None, "liquidLabwareGroupId": g["id"],
+                rec = {"channelSelection": head, "tipLabwareGroupId": tip, "tipLabwareDisplayName": None, "liquidLabwareGroupId": g["id"],
                        "newTipsEachTransfer": single, "mixBeforeAspirate": False, "mixAfterDispense": False, "multiDispense": not single,
                        "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste",
                        "multiDispenseSettings": md, "aspirateSettings": a, "dispenseSettings": d,

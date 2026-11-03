@@ -523,6 +523,8 @@ def head_errors(spec, mapping=None):
     for i, st in enumerate(spec["steps"]):
         t = st["type"]
         if t in ("transfer", "distribute") and kind(st["fromPos"]) == "tubes":
+            if st.get("head") == "eight":
+                out.append(f"Step {i + 1}: The 8-channel head cannot draw from a tube: the Prep only lets the 2-channel head draw from the 1.5 mL tube rack. Use the 2-channel head for this step.")
             empty = [w for w in _well_list(st["fromWells"]) or [] if (occ[st["fromPos"]], w) not in loaded]
             if empty:
                 many = len(empty) > 1

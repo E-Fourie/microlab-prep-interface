@@ -383,11 +383,17 @@ class TubeRack(Base):
 
 
     def test_tube_must_hold_what_the_steps_draw_plus_dead_volume(self):
-        # 8 wells x 10 uL on the 8-channel head: 80 uL plus a pre and post aliquot (20 uL each) for each of 8 channels = 400 uL
-        low = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 440}]
-        self.fails(self.sp([self.tube_step()], contents=low), "tube A1", "440", "520")
-        ok = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 520}]
+        # 8 wells x 10 uL on the two-channel head (the only head that reaches a tube): 80 uL plus a pre and post aliquot (20 uL each) for each of 2 channels = 160 uL
+        low = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 270}]
+        self.fails(self.sp([self.tube_step()], contents=low), "tube A1", "270", "280")
+        ok = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 280}]
         self.assertEqual(len(self.c(self.sp([self.tube_step()], contents=ok))["steps"]), 1)
+
+    def test_tube_source_always_uses_the_two_channel_head(self):
+        # the Prep refuses "Liquid source is invalid for the selected pipettor" for the eight-channel head on a tube, so even the 96-well default is two-channel
+        self.assertEqual(self.c(self.sp([self.tube_step()]))["steps"][0]["channelSelection"], "TwoChannel")
+        self.assertEqual(self.c(self.sp([dict(self.tube_step(), head="two")]))["steps"][0]["channelSelection"], "TwoChannel")
+        self.fails(self.sp([dict(self.tube_step(), head="eight")]), "cannot draw from a tube")
 
     def test_same_liquid_in_two_tubes_stays_two_groups(self):
         cont = [{"pos": "3", "wells": "A1", "liquid": "Aqueous", "vol": 1000}, {"pos": "3", "wells": "D1", "liquid": "Aqueous", "vol": 1000}]

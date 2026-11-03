@@ -334,6 +334,7 @@
     const loaded = (home, [r, c]) => spec.contents.some(x => x.pos === home && list(x.wells).some(([r2, c2]) => r2 === r && c2 === c));
     spec.steps.forEach((s, i) => {
       if ((s.type === 'transfer' || s.type === 'distribute') && kind(s.fromPos) === 'tubes') {
+        if (s.head === 'eight') out.push({ step: i, msg: 'The 8-channel head cannot draw from a tube: the Prep only lets the 2-channel head draw from the 1.5 mL tube rack. Use the 2-channel head for this step.' });
         const empty = list(s.fromWells).filter(w => !loaded(occ[s.fromPos], w));
         if (empty.length) out.push({ step: i, msg: `Source tube${empty.length > 1 ? 's' : ''} ${empty.map(([r, c]) => wellName(r, c)).join(', ')} at position ${s.fromPos} ${empty.length > 1 ? 'have' : 'has'} no liquid in the protocol's contents. Add the liquid to the Contents list: the Prep needs to know what is in each tube it draws from.` });
       }
