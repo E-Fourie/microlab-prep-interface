@@ -227,9 +227,9 @@ class Mapping(Base):
         self.assertNotIn("aspFlow", json.dumps(self.c(spec([a]))))
 
     def test_pause_and_shake_variants(self):
-        r = self.c(spec([{"type": "pause", "message": "Seal"}, {"type": "shake", "pos": "3", "temp": 37, "rpm": 0, "minutes": 2},
+        r = self.c(spec([{"type": "shake", "pos": "3", "temp": 37, "rpm": 0, "minutes": 2}, {"type": "pause", "message": "Seal"},
                          {"type": "shake", "pos": "3", "temp": 40, "rpm": 800, "minutes": 1.5}]))
-        p, h1, h2 = r["steps"]
+        h1, p, h2 = r["steps"]
         self.assertEqual((p["message"], p["pauseForSetDuration"]), ("Seal", False))
         self.assertEqual((h1["heat"], h1["shake"], h1["duration"], h1["temperature"]), (True, False, 120, 37))
         self.assertEqual((h2["heat"], h2["shake"], h2["duration"], h2["rpm"]), (True, True, 90, 800))
@@ -519,12 +519,12 @@ class Errors(Base):
         self.fails(spec(moves, deck=dict(DECK, **{"3": {"lw": "c_191"}, "5": {"lw": "c_43"}})), "does not fit the")   # semi skirt still has to list the alignment
 
     def test_timed_pause(self):
-        out = self.c(spec([{"type": "pause", "message": "Ice 20 min", "minutes": 20}, {"type": "pause", "message": "Press Continue"}]))
-        timed, plain = out["steps"][0], out["steps"][1]
+        out = self.c(spec([dist(), {"type": "pause", "message": "Ice 20 min", "minutes": 20}, {"type": "pause", "message": "Press Continue"}, dist()]))  # pauses in the middle: edge pauses are dropped
+        timed, plain = out["steps"][1], out["steps"][2]
         self.assertEqual((timed["stepType"], timed["pauseForSetDuration"], timed["duration"]), ("PauseStep", True, 1200))
         self.assertEqual(timed["name"], "Ice 20 min")
         self.assertEqual((plain["pauseForSetDuration"], plain["message"]), (False, "Press Continue"))
-        self.fails(spec([{"type": "pause", "message": "x", "minutes": 0}]), "minutes")
+        self.fails(spec([{"type": "pause", "message": "x", "minutes": 0}, dist()]), "minutes")
 
     def test_unsupported_transfers(self):
         self.fails(spec([{"type": "distribute", "fromPos": "3", "fromWells": "A1:B1", "toPos": "7", "toWells": "A1:H1", "vol": 5}]), "one source well")

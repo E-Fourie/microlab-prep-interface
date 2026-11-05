@@ -69,10 +69,6 @@
    "temp": 0,
    "rpm": 1000,
    "minutes": 1
-  },
-  {
-   "type": "pause",
-   "message": "Seal the plate and spin down briefly."
   }
  ],
  "labware": {

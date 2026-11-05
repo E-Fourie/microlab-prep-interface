@@ -169,5 +169,21 @@ class Extra(unittest.TestCase):
         self.assertFalse(spec_check.validate(mutated(deck={"constructor": {"lw": "plate_pcr"}}))["valid"])
 
 
+class NoEdgePauses(unittest.TestCase):
+    """A run never starts or ends on a pause: the first step is the first step and the last is the last."""
+    def test_leading_and_trailing_pauses_are_dropped_and_middle_ones_kept(self):
+        pause = {"type": "pause", "message": "Load the deck"}
+        mid = {"type": "pause", "message": "Wait", "minutes": 2}
+        xfer = GOOD["steps"][0]
+        spec, errs = spec_check.check(mutated(steps=[pause, dict(pause), xfer, mid, xfer, dict(pause)]))
+        self.assertEqual(errs, [])
+        self.assertEqual([s["type"] for s in spec["steps"]], ["transfer", "pause", "transfer"])
+        self.assertTrue(spec_check.validate(mutated(steps=[pause, xfer, pause]))["valid"])
+
+    def test_a_protocol_of_only_pauses_has_no_steps_left(self):
+        spec, errs = spec_check.check(mutated(steps=[{"type": "pause", "message": "x"}]))
+        self.assertEqual(spec["steps"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

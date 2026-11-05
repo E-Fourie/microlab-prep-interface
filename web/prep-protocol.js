@@ -278,7 +278,11 @@
     });
     if (variables.length) spec.variables = variables;
     if (spec.steps.length === steps.length) refs.forEach(r => { if (spec.steps[r.i] && r.f in spec.steps[r.i]) spec.steps[r.i][r.f] = '$' + r.name; }); // the steps keep their "$name"
-    return { spec, errors };
+    // A run never starts or ends on a pause: the first step is the first step and the last is the last (the Prep's own load check covers loading).
+    const trimmed = { start: 0, end: 0 };
+    while (spec.steps.length && spec.steps[0].type === 'pause') { spec.steps.shift(); trimmed.start++; }
+    while (spec.steps.length && spec.steps[spec.steps.length - 1].type === 'pause') { spec.steps.pop(); trimmed.end++; }
+    return { spec, errors, trimmed };
   }
 
   /**
@@ -516,6 +520,8 @@
     const sim = simulate(c.spec);
     const where = e => (e.step != null ? `Step ${e.step + 1}: ${e.msg}` : e.msg);
     const out = { valid: sim.errors.length === 0, spec: c.spec, errors: sim.errors.map(where), warnings: sim.warnings.map(where), load: sim.load, steps: sim.events.map(e => e.text) };
+    const t = c.trimmed || { start: 0, end: 0 };
+    if (t.start || t.end) out.warnings.unshift(`Removed ${[t.start ? `${t.start} pause step${t.start > 1 ? 's' : ''} from the start` : '', t.end ? `${t.end} from the end` : ''].filter(Boolean).join(' and ')}: a protocol never starts or ends on a pause.`);
     if (detail) out.simulation = sim;
     return out;
   }

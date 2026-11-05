@@ -405,6 +405,11 @@ def check(data):
         for i, f, nm in refs:
             if i < len(spec["steps"]) and f in spec["steps"][i]:
                 spec["steps"][i][f] = "$" + nm
+    # A run never starts or ends on a pause (twin of prep-protocol.js check()).
+    while spec["steps"] and spec["steps"][0]["type"] == "pause":
+        spec["steps"].pop(0)
+    while spec["steps"] and spec["steps"][-1]["type"] == "pause":
+        spec["steps"].pop()
     return spec, errors
 
 
