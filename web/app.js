@@ -635,7 +635,7 @@ function prepChips(it) {
 const starTip = it => it.canSync ? (it.favourite ? 'Starred: kept on the Prep. Click to remove it from the Prep.' : 'Click to star it and put it on the Prep.') : (it.favourite ? 'Pinned to the top. Click to unpin.' : 'Click to pin to the top.');
 const statusLabel = it => (it.pending ? 'Syncing' : it.canSync ? (it.onPrep ? 'On the Prep' : 'Not on the Prep') : (it.favourite ? 'Pinned' : ''));
 function rowHTML(it, checked) {
-  return `<tr class="prow ${it.favourite ? 'fav' : ''} ${checked ? 'sel' : ''}" data-n="${esc(it.name)}">
+  return `<tr class="prow ${it.favourite ? 'fav' : ''} ${checked ? 'picked' : ''}" data-n="${esc(it.name)}">
     <td class="c-sel"><input type="checkbox" data-a="sel" ${checked ? 'checked' : ''} aria-label="Select ${esc(it.title)}"></td>
     <td class="c-star"><button class="star ${it.favourite ? 'on' : ''}" data-a="star" aria-pressed="${it.favourite}" title="${esc(starTip(it))}" aria-label="${esc(starTip(it))}">${STAR}</button></td>
     <td class="c-name"><b>${esc(it.title)}</b>${it.description ? `<div class="pdesc" title="${esc(it.description)}">${esc(it.description)}</div>` : ''}${it.error ? `<div class="pcard-err">${esc(it.error)}</div>` : ''}</td>

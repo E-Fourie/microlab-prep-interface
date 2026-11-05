@@ -143,27 +143,27 @@ input[type=checkbox]:checked::after { content: ''; position: absolute; left: 5px
 .toolbar { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
 .toolbar .tabs { margin-right: auto; }
 .panel.flush { padding: 0; overflow: hidden; }
-.ptable { min-width: 760px; }
+.ptable { min-width: 880px; table-layout: fixed; width: 100%; }
 .ptable th.c-sel, .ptable td.c-sel { width: 44px; padding-right: 0; }
 .ptable th.c-star, .ptable td.c-star { width: 52px; padding: 0 4px; text-align: center; }
 .ptable td.c-star .star { width: 32px; height: 32px; }
 .ptable td.c-star .star svg { width: 20px; height: 20px; }
-.ptable td.c-name { max-width: 420px; overflow-wrap: anywhere; }
+.ptable td.c-name { overflow-wrap: break-word; word-break: normal; }
 .ptable td.c-name b { font-size: 14px; }
-.ptable td.c-status { width: 1%; white-space: nowrap; }
-.ptable td.c-act { width: 1%; white-space: nowrap; text-align: right; }
+.ptable th.c-status, .ptable td.c-status { width: 190px; }
+.ptable th.c-act, .ptable td.c-act { width: 300px; white-space: nowrap; text-align: right; }
 .ptable td.c-act > * + * { margin-left: 6px; }
 .ptable tbody tr:hover td { background: var(--accent-light); }
 .ptable tr.prow.fav td { background: #fbf8ec; }
 .ptable tr.prow.fav:hover td { background: var(--accent-light); }
 .ptable tr.prow.fav td:first-child { box-shadow: inset 3px 0 0 var(--accent2); }
-.ptable tr.prow.sel td { background: var(--accent-light); }
+.ptable tr.prow.picked td { background: var(--accent-light); }
 .ptable tbody tr:last-child td { border-bottom: 0; }
 .ptable .sortb { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
 .ptable .sortb:hover, .ptable .sortb.on { color: var(--accent); }
 .ptable .sortb i { font-style: normal; }
 .pdesc { color: var(--ink-muted); font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin-top: 2px; }
-.pcard-meta { display: flex; gap: 6px; flex-wrap: nowrap; }
+.pcard-meta { display: flex; gap: 6px; flex-wrap: wrap; }
 .pcard-err { font-size: 12.5px; color: var(--danger); background: var(--danger-light); border: 1px solid var(--danger-border); border-radius: var(--radius-sm); padding: 6px 10px; margin-top: 6px; }
 .bulkbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-light); font-size: 13px; }
 .bulkbar[hidden] { display: none; }
@@ -318,3 +318,19 @@ details.more[open] > summary { margin-bottom: 12px; }
 @media (max-width: 860px) { .deck-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .step-head .step-label { flex: 1 1 140px; min-width: 0; max-width: 320px; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
+
+/* ───────── row selection: checkbox column and bulk bar ───────── */
+.ptable th.c-sel, .ptable td.c-sel { width: 52px; padding-left: 18px; padding-right: 0; }
+.ptable td.c-sel input[type=checkbox], .ptable th.c-sel input[type=checkbox] { width: 20px; height: 20px; border-radius: 6px; border-width: 2px; border-color: #a9b5b1; transition: background-color .12s, border-color .12s, box-shadow .12s; }
+.ptable td.c-sel input[type=checkbox]:hover, .ptable th.c-sel input[type=checkbox]:hover { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(31,77,73,.12); }
+.ptable td.c-sel input[type=checkbox]:checked::after, .ptable th.c-sel input[type=checkbox]:checked::after { left: 6px; top: 2px; }
+.ptable input[type=checkbox]:indeterminate { background: var(--accent); border-color: var(--accent); }
+.ptable input[type=checkbox]:indeterminate::after { content: ""; position: absolute; left: 3px; right: 3px; top: 7px; height: 2px; border-radius: 1px; background: var(--accent-ink, #fff); }
+.ptable input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ptable tr.prow.picked td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+.bulkbar { position: sticky; top: 10px; z-index: 5; gap: 8px 10px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: var(--radius-lg, 14px); background: #fff; box-shadow: 0 8px 24px rgba(20,33,31,.14); animation: bulkin .14s ease-out; }
+.bulkbar b { display: inline-flex; align-items: center; gap: 8px; margin: 0 6px 0 0; padding: 4px 12px; border-radius: 20px; background: var(--accent); color: var(--accent-ink, #fff); font-size: 12.5px; letter-spacing: .01em; }
+.bulkbar .btn-ghost { background: #fff; }
+.bulkbar .btn-ghost.danger:hover:not(:disabled) { background: var(--danger-light); border-color: var(--danger); }
+@keyframes bulkin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bulkbar { animation: none; } }

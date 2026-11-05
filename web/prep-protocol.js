@@ -47,7 +47,7 @@
 // ═══════════════════════════════════════════════════════
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./prep-catalogue.js'));
-  else (root.PSBACalc = root.PSBACalc || {}).prepProtocol = factory(root.PSBACalc.prepCatalogue);
+  else (root.PrepCalc = root.PrepCalc || {}).prepProtocol = factory(root.PrepCalc.prepCatalogue);
 })(typeof self !== 'undefined' ? self : this, function (Catalogue) {
   const LABWARE = {
     tips_50: { label: '50 µL tip rack', kind: 'tips', rows: 8, cols: 12, tipVol: 50 },
