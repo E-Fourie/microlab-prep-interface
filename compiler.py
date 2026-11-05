@@ -329,7 +329,13 @@ class _Compiler:
         n = n or 1
         avail = [r for r in self.racks if r["used"] + n <= r["total"]]
         if not avail:
-            self.fail(i, "out of tips")
+            # Every rack is used up: the Prep stops and asks for tips to be reloaded, so carry on as if the first rack that can hold n tips was refilled.
+            fresh = [r for r in self.racks if n <= r["total"]]
+            if not fresh:
+                self.fail(i, f"one step needs {n} tips but no rack holds that many")
+            fresh[0]["used"] = 0
+            self.reloads = getattr(self, "reloads", 0) + 1
+            avail = [fresh[0]]
         fit = sorted([r for r in avail if r["vol"] >= vol], key=lambda r: (r["vol"], r["pos"])) or sorted(avail, key=lambda r: (-r["vol"], r["pos"]))
         r = fit[0]
         r["used"] += n

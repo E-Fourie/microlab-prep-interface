@@ -284,7 +284,7 @@ window.addEventListener('hashchange', mount);
 const S = {
   cfg: { host: '', base: '', mock: false, folder: '', scenario: '', scenarios: [] },
   settings: { autoMaint: true, homeFirst: true }, // always on
-  library: [], libKey: '', sync: null, conn: 'checking', connErr: '', runState: null, q: '', tab: 'all',
+  library: [], libKey: '', sync: null, conn: 'checking', connErr: '', runState: null, q: '', tab: 'all', sel: new Set(), sortK: 'name', sortD: 1, lastSel: null,
 };
 async function loadLibrary(quiet) {
   try { S.library = await local('GET', '/protocols'); } catch (e) { S.library = []; if (!quiet) toast(fmtErr(e.detail || e), true); }
@@ -633,14 +633,15 @@ function prepChips(it) {
   return it.favourite ? '<span class="chip info">Pinned · runs from this laptop</span>' : '';
 }
 const starTip = it => it.canSync ? (it.favourite ? 'Starred: kept on the Prep. Click to remove it from the Prep.' : 'Click to star it and put it on the Prep.') : (it.favourite ? 'Pinned to the top. Click to unpin.' : 'Click to pin to the top.');
-function cardHTML(it) {
-  return `<article class="pcard ${it.favourite ? 'fav' : ''}" data-n="${esc(it.name)}">
-    <div class="pcard-top"><h3>${esc(it.title)}</h3><button class="star ${it.favourite ? 'on' : ''}" data-a="star" aria-pressed="${it.favourite}" title="${esc(starTip(it))}" aria-label="${esc(starTip(it))}">${STAR}</button></div>
-    <p class="pdesc">${esc(it.description || ' ')}</p>
-    <div class="pcard-meta">${statusChips(it)}</div>
-    ${it.error ? `<div class="pcard-err">${esc(it.error)}</div>` : ''}
-    <div class="pcard-actions"><button class="btn" data-a="run">▶ Run</button><button class="btn-ghost" data-a="edit">Edit</button><button class="btn-ghost" data-a="export">Export</button><span class="spacer"></span><button class="btn-ghost quiet" data-a="del">Delete</button></div>
-  </article>`;
+const statusLabel = it => (it.pending ? 'Syncing' : it.canSync ? (it.onPrep ? 'On the Prep' : 'Not on the Prep') : (it.favourite ? 'Pinned' : ''));
+function rowHTML(it, checked) {
+  return `<tr class="prow ${it.favourite ? 'fav' : ''} ${checked ? 'sel' : ''}" data-n="${esc(it.name)}">
+    <td class="c-sel"><input type="checkbox" data-a="sel" ${checked ? 'checked' : ''} aria-label="Select ${esc(it.title)}"></td>
+    <td class="c-star"><button class="star ${it.favourite ? 'on' : ''}" data-a="star" aria-pressed="${it.favourite}" title="${esc(starTip(it))}" aria-label="${esc(starTip(it))}">${STAR}</button></td>
+    <td class="c-name"><b>${esc(it.title)}</b>${it.description ? `<div class="pdesc" title="${esc(it.description)}">${esc(it.description)}</div>` : ''}${it.error ? `<div class="pcard-err">${esc(it.error)}</div>` : ''}</td>
+    <td class="c-status"><div class="pcard-meta">${statusChips(it)}</div></td>
+    <td class="c-act"><button class="btn sm" data-a="run">▶ Run</button><button class="btn-ghost sm" data-a="edit">Edit</button><button class="btn-ghost sm" data-a="export">Export</button><button class="btn-ghost sm quiet" data-a="del">Delete</button></td>
+  </tr>`;
 }
 VIEWS.protocols = {
   timer: null,
@@ -652,11 +653,18 @@ VIEWS.protocols = {
       <div id="notice"></div>
       <div class="toolbar"><div class="tabs" id="tabs"><button data-t="all">All</button><button data-t="fav">★ Starred</button></div>
         <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="q" placeholder="Search protocols" value="${esc(S.q)}" aria-label="Search protocols"></div></div>
-      <div class="cards" id="cards"></div></div>`;
+      <div class="bulkbar" id="bulk" hidden><b id="bulkN"></b><button class="btn-ghost sm" data-b="star">★ Star</button><button class="btn-ghost sm" data-b="unstar">Unstar</button><button class="btn-ghost sm danger" data-b="del">Delete…</button><span class="spacer"></span><button class="btn-ghost sm quiet" data-b="clear">Clear selection</button></div>
+      <div class="panel flush"><div class="table-wrap"><table class="ptable"><thead><tr>
+        <th class="c-sel"><input type="checkbox" id="selAll" aria-label="Select all shown protocols"></th><th class="c-star" title="Starred protocols are always listed first">★</th>
+        <th class="c-name"><button class="sortb" data-sort="name">Name<i></i></button></th><th class="c-status"><button class="sortb" data-sort="status">Status<i></i></button></th><th class="c-act"></th></tr></thead>
+        <tbody id="cards"></tbody></table></div><div id="cardsEmpty"></div></div></div>`;
     $('#once').onclick = () => $('#fo').click(); $('#fo').onchange = e => { if (e.target.files[0]) runOnce(e.target.files[0]); e.target.value = ''; };
     $('#add').onclick = () => $('#fi').click(); $('#fi').onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
     $('#q').oninput = e => { S.q = e.target.value; this.draw(); };
     $$('#tabs button').forEach(b => b.onclick = () => { S.tab = b.dataset.t; this.draw(); });
+    $$('.sortb').forEach(b => b.onclick = () => { const k = b.dataset.sort; S.sortD = S.sortK === k ? -S.sortD : 1; S.sortK = k; this.draw(); });
+    $('#selAll').onclick = e => { this.visible.forEach(it => (e.target.checked ? S.sel.add(it.name) : S.sel.delete(it.name))); S.lastSel = null; S.libKey = ''; this.draw(); };
+    $$('[data-b]', $('#bulk')).forEach(b => b.onclick = () => this.bulk(b.dataset.b));
     S.libKey = ''; delete $('#notice')?.dataset.k; // this page is freshly built, so force a full draw
     await loadLibrary(); this.draw(); this.notice();
     clearInterval(this.timer); this.timer = setInterval(async () => { await loadLibrary(true); this.draw(); }, 4000);
@@ -670,19 +678,61 @@ VIEWS.protocols = {
     if ($('#nTry')) $('#nTry').onclick = async () => { S.conn = 'checking'; paintPill(); await pollStatus(); };
     if ($('#nSim')) $('#nSim').onclick = () => setMock({ enabled: true });
   },
+  visible: [],
   draw() {
     const cards = $('#cards'); if (!cards) return;
     $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
-    const q = S.q.trim().toLowerCase();
+    const names = new Set(S.library.map(it => it.name)); [...S.sel].forEach(n => { if (!names.has(n)) S.sel.delete(n); });
+    const q = S.q.trim().toLowerCase(), d = S.sortD;
+    const val = it => (S.sortK === 'status' ? `${statusLabel(it)} ${it.web ? 'web' : ''}` : it.title).toLowerCase();
     const list = S.library.filter(it => (S.tab === 'all' || it.favourite) && (!q || `${it.title} ${it.description}`.toLowerCase().includes(q)))
-      .sort((a, b) => (b.favourite - a.favourite) || a.title.localeCompare(b.title));
-    const key = JSON.stringify([list, S.tab, q, RUN.active]); if (key === S.libKey) return; S.libKey = key;
-    cards.innerHTML = list.map(cardHTML).join('') || `<div class="panel" style="grid-column:1/-1"><div class="empty"><h2>${S.library.length ? 'No matches' : 'No protocols yet'}</h2><span>${S.library.length ? 'Try a different search.' : 'Protocols stored on the Prep show up here by themselves. You can also drop a file anywhere on this page, or press “Add protocol”.'}</span></div></div>`;
-    $$('.pcard', cards).forEach(c => {
-      const it = byName(c.dataset.n);
-      $$('[data-a]', c).forEach(b => b.onclick = () => this.act(b.dataset.a, it));
+      .sort((a, b) => (b.favourite - a.favourite) || (d * val(a).localeCompare(val(b), undefined, { numeric: true })) || a.title.localeCompare(b.title, undefined, { numeric: true }));
+    this.visible = list;
+    const key = JSON.stringify([list, S.tab, q, RUN.active, [...S.sel], S.sortK, S.sortD]); if (key === S.libKey) return; S.libKey = key;
+    cards.innerHTML = list.map(it => rowHTML(it, S.sel.has(it.name))).join('');
+    $('#cardsEmpty').innerHTML = list.length ? '' : `<div class="empty"><h2>${S.library.length ? 'No matches' : 'No protocols yet'}</h2><span>${S.library.length ? 'Try a different search.' : 'Protocols stored on the Prep show up here by themselves. You can also drop a file anywhere on this page, or press “Add protocol”.'}</span></div>`;
+    $$('.sortb').forEach(b => { const on = b.dataset.sort === S.sortK; b.classList.toggle('on', on); $('i', b).textContent = on ? (S.sortD > 0 ? ' ▲' : ' ▼') : ''; b.closest('th').setAttribute('aria-sort', on ? (S.sortD > 0 ? 'ascending' : 'descending') : 'none'); });
+    const n = list.filter(it => S.sel.has(it.name)).length, all = $('#selAll');
+    all.checked = n > 0 && n === list.length; all.indeterminate = n > 0 && n < list.length;
+    $('#bulk').hidden = !S.sel.size; $('#bulkN').textContent = `${S.sel.size} selected`;
+    $$('tr.prow', cards).forEach((tr, i) => {
+      const it = byName(tr.dataset.n);
+      $$('[data-a]', tr).forEach(b => b.onclick = e => {
+        if (b.dataset.a !== 'sel') return this.act(b.dataset.a, it);
+        if (e.shiftKey && S.lastSel !== null && list[S.lastSel]) { // shift-click selects the range from the last click
+          const [x, y] = [S.lastSel, i].sort((m, k) => m - k); list.slice(x, y + 1).forEach(r => (b.checked ? S.sel.add(r.name) : S.sel.delete(r.name)));
+        } else b.checked ? S.sel.add(it.name) : S.sel.delete(it.name);
+        S.lastSel = i; S.libKey = ''; this.draw();
+      });
     });
     this.notice();
+  },
+  async bulk(a) {
+    const items = [...S.sel].map(byName).filter(Boolean), n = items.length; if (!n) return;
+    const redraw = () => { S.libKey = ''; this.draw(); };
+    if (a === 'clear') { S.sel.clear(); return redraw(); }
+    try {
+      if (a === 'del') {
+        const shown = items.slice(0, 8).map(it => `<li>${esc(it.title)}</li>`).join('') + (n > 8 ? `<li>and ${n - 8} more</li>` : '');
+        const onPrep = items.filter(it => it.onPrep).length;
+        if (!await confirmModal({ title: `Delete ${n} protocol${n === 1 ? '' : 's'}?`, ok: `Delete ${n}`, danger: true,
+          body: `<ul>${shown}</ul><p>${onPrep ? `${onPrep} of them ${onPrep === 1 ? 'is' : 'are'} on the Prep and will be removed from it (a safety copy of each Prep version is kept in the protocols folder). ` : ''}This cannot be undone.</p>` })) return;
+        let failed = 0;
+        for (const it of items) { try { await local('DELETE', '/protocols/' + enc(it.name)); S.sel.delete(it.name); } catch (e) { failed++; } }
+        toast(failed ? `Deleted ${n - failed} of ${n}. ${failed} could not be deleted.` : `Deleted ${n} protocol${n === 1 ? '' : 's'}.`, !!failed);
+      } else {
+        const want = a === 'star', todo = items.filter(it => it.favourite !== want);
+        if (!todo.length) return toast(`Already ${want ? 'starred' : 'not starred'}.`);
+        const gone = todo.filter(it => !want && it.canSync && it.onPrep);
+        if (gone.length && !await confirmModal({ title: `Remove ${gone.length} protocol${gone.length === 1 ? '' : 's'} from the Prep?`, ok: 'Un-star and remove',
+          body: '<p>They will be deleted from the machine. A copy of each stays in this library, and you can star them again any time to put them back.</p>' })) return;
+        todo.forEach(it => { it.favourite = want; it.pending = it.canSync ? (want ? 'upload' : it.onPrep ? 'remove' : null) : null; });
+        redraw();
+        for (const it of todo) await local('PUT', '/favourite', { name: it.name, favourite: want });
+        pollStatus();
+      }
+    } catch (e) { toast(fmtErr(e.detail || e), true); }
+    await loadLibrary(true); redraw();
   },
   async act(a, it) {
     try {

@@ -434,8 +434,16 @@ class TipRacks(Base):
         self.assertNotEqual(ids[0], ids[1])
         self.assertEqual(len(raw["steps"][0]["sources"][0]["addresses"]), 16)
 
-    def test_no_tips_left_anywhere_is_refused(self):
-        self.fails(self.sp(n=25), "out of tips")  # two racks hold 24 columns
+    def test_running_out_of_tips_carries_on_as_a_reload(self):
+        raw = self.c(self.sp(n=25))  # two racks hold 24 columns; the 25th waits for the Prep's reload prompt, on the first rack again
+        ids = self.tip_groups(raw)
+        self.assertEqual(len(ids), 3)
+        self.assertEqual(ids[0], ids[2])
+
+    def test_a_step_bigger_than_any_rack_is_refused(self):
+        sp = self.sp(n=1)
+        sp["steps"] = [xfer(d="A1:H12", s="A1:H12")] + [xfer(d="A1:H1,A2:H2", s="A1:H1,A2:H2")] * 0
+        self.c(sp)  # a whole plate is exactly one rack (96): still fine
 
 
 class Errors(Base):
