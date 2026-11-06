@@ -13,7 +13,7 @@
 //     pauses for one to be refilled;
 //     without channels one tip is used per well)
 //     (discard takes vol uL out of each of the wells at pos to waste, one tip per well: { type, pos, wells, vol })
-//     (every pipetting step may carry head: 'two' | 'eight' to pick the 2-channel or 8-channel head for that step; without it the whole protocol uses the 8-channel head,
+//     (every pipetting step may carry head: 'two' | 'eight' | 'one' (one channel of the 2-channel head) to pick the head for that step; without it the whole protocol uses the 8-channel head,
 //     or the 2-channel head when a 384-well plate is on the deck. The 2-channel head takes single wells; the 8-channel head only whole columns)
 //     (every step may also carry label, a name shown in the Builder and the playback)
 //     (transfer/distribute may also carry aspFlow, dspFlow in uL/s, aspHeight, dspHeight in mm; a reagent step may carry preMix: N (mix the source N times before the first aspirate, to keep beads suspended) and multiDispense: false for one aspirate and one dispense per well with a fresh tip each, needed when volume + 2 x 5 uL aliquots would not fit the tip)
@@ -246,7 +246,7 @@
       const vol = () => num(s.vol, `${p}.vol`, errors, { min: 0, max: LIMITS.vol });
       const before = spec.steps.length;
       const head = st => { // optional 8-channel settings, shared by every pipetting step
-        if (s.head !== undefined && s.head !== null && s.head !== '') { if (s.head === 'two' || s.head === 'eight') st.head = s.head; else errors.push({ path: `${p}.head`, msg: 'must be "two" or "eight"' }); }
+        if (s.head !== undefined && s.head !== null && s.head !== '') { if (s.head === 'two' || s.head === 'eight' || s.head === 'one') st.head = s.head; else errors.push({ path: `${p}.head`, msg: 'must be "one", "two" or "eight"' }); }
         if (s.channels !== undefined && s.channels !== null && s.channels !== '') { if (s.channels === 1 || s.channels === 8) st.channels = s.channels; else errors.push({ path: `${p}.channels`, msg: 'must be 1 or 8' }); }
         if (s.tipDiscard !== undefined && s.tipDiscard !== null && s.tipDiscard !== '') {
           if (s.tipDiscard === 'waste' || s.tipDiscard === 'rack') st.tipDiscard = s.tipDiscard; else errors.push({ path: `${p}.tipDiscard`, msg: 'must be "waste" or "rack"' });
@@ -262,9 +262,11 @@
         opt('aspHeight', { min: -LIMITS.height, max: LIMITS.height }); opt('dspHeight', { min: 0, max: LIMITS.height });
         if (s.preMix !== undefined && s.preMix !== null && s.preMix !== '') st.preMix = num(s.preMix, `${p}.preMix`, errors, { min: 1, max: LIMITS.cycles, int: true }); // mix the source this many times (up to 150 uL a cycle) before the first aspirate
         if (s.multiDispense !== undefined && s.multiDispense !== null && s.multiDispense !== '') { if (typeof s.multiDispense === 'boolean') st.multiDispense = s.multiDispense; else errors.push({ path: `${p}.multiDispense`, msg: 'must be true or false' }); } // false: one aspirate and one dispense per well, a fresh tip for each well (a reagent step only)
+        opt('passes', { min: 1, max: 4, int: true }); // with multiDispense false: aspirate + dispense this many times into each well on ONE tip (volumes over the tip size)
+        opt('group', { min: 0, max: 100000, int: true }); // steps of one group may merge into one Prep step; different groups never do
         spec.steps.push(head(st));
       }
-      else if (s.type === 'mix') spec.steps.push(head({ type: 'mix', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol(), cycles: num(s.cycles === undefined ? 3 : s.cycles, `${p}.cycles`, errors, { min: 1, max: LIMITS.cycles, int: true, fallback: 1 }) }));
+      else if (s.type === 'mix') { const mst = { type: 'mix', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol(), cycles: num(s.cycles === undefined ? 3 : s.cycles, `${p}.cycles`, errors, { min: 1, max: LIMITS.cycles, int: true, fallback: 1 }) }; if (s.flow !== undefined && s.flow !== null && s.flow !== '') mst.flow = num(s.flow, `${p}.flow`, errors, { min: 1, max: LIMITS.flow }); spec.steps.push(head(mst)); } // flow: mix flow rate in uL/s
       else if (s.type === 'discard') spec.steps.push(head({ type: 'discard', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol() }));
       else if (s.type === 'shake') spec.steps.push({ type: 'shake', pos: pos(s.pos === undefined || s.pos === '' || s.pos === null ? HHS_POS : s.pos, `${p}.pos`, errors), temp: num(s.temp === undefined ? 0 : s.temp, `${p}.temp`, errors, { min: 0, max: LIMITS.temp }), rpm: num(s.rpm, `${p}.rpm`, errors, { min: 0, max: LIMITS.rpm }), minutes: num(s.minutes, `${p}.minutes`, errors, { min: 0, max: LIMITS.minutes }) });
       else if (s.type === 'move') spec.steps.push({ type: 'move', fromPos: pos(s.fromPos, `${p}.fromPos`, errors), toPos: pos(s.toPos, `${p}.toPos`, errors) });
@@ -441,6 +443,8 @@
     };
     const snap = () => ({ occ: { ...occ }, vol: JSON.parse(JSON.stringify(vol)), tips: racks.map(r => ({ pos: r.pos, used: r.used, back: [...r.back] })) });
     const initial = snap();
+    const grpSeen = {}; // steps of one group merge into one Prep step: two tips (one per channel of the 2-channel head), or one tip on the single channel
+    const groupNeedsTip = s => { if (s.group === undefined) return true; const k = s.group + '|' + s.fromPos; grpSeen[k] = (grpSeen[k] || 0) + 1; return grpSeen[k] <= (s.head === 'one' ? 1 : 2); };
     p.steps.forEach((s, i) => {
       const ev = { i, text: '', hl: {}, hl2: {} }; ev.reloadSnaps = []; ev.putBack = s.tipDiscard === 'rack'; cur = ev;
       const mark = (m, pos, ws) => { const list = (m[pos] = m[pos] || []); ws.forEach(w => { if (!list.includes(w)) list.push(w); }); };
@@ -463,7 +467,7 @@
           else {
             const fit = racks.filter(r => r.tipVol >= v).sort((x, y) => x.tipVol - y.tipVol)[0] || racks.slice().sort((x, y) => y.tipVol - x.tipVol)[0], single = s.multiDispense === false;
             if (!single && fit && src.lw.kind === 'reservoirs' && v + 2 * MIN_ALIQUOT > fit.tipVol) errors.push({ step: i, msg: `A multi-dispense of ${v} µL needs room in the ${fit.tipVol} µL tip for a pre and post aliquot of at least ${MIN_ALIQUOT} µL each. Use a smaller volume per dispense, or turn multi-dispense off for this step (one aspirate and one dispense per well).` });
-            const pk = single ? null : pickups(s, dst.wells, 'step'); if (pk) pk.forEach(it => grab(v, i, it)); else if (!single) grab(v, i); dst.wells.forEach(w => { if (single) grab(v, i); const l = aspirate(src.id, src.wells[0], v, i); dispense(dst.id, w, v, l, dst.lw, i); }); }
+            const pk = single ? null : pickups(s, dst.wells, 'step'); if (pk) pk.forEach(it => grab(v, i, it)); else if (!single && groupNeedsTip(s)) grab(v, i); dst.wells.forEach(w => { if (single) grab(v, i); for (let q = 0; q < (single ? (s.passes || 1) : 1); q++) { const l = aspirate(src.id, src.wells[0], v, i); dispense(dst.id, w, v, l, dst.lw, i); } }); }
           mark(ev.hl, src.pos, src.wells); mark(ev.hl2, dst.pos, dst.wells);
         }
       } else if (s.type === 'mix') {

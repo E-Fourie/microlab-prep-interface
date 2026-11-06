@@ -60,7 +60,7 @@ CUSTOM_LIQUID = {"id": 0, "asFlowRate": 250, "asMixFlowRate": 120, "asBlowOutVol
                  "correctionCurve": [{"target": t, "value": v, "isUserAdded": False} for t, v in
                                      ((0, 0), (10, 13), (20, 24.2), (50, 55.7), (100, 107.1), (200, 208.9), (500, 514.3), (1000, 1022))],
                  "isUserLiquid": False}
-OPT_KEYS = ("aspFlow", "dspFlow", "aspHeight", "dspHeight", "tipDiscard", "head", "preMix")
+OPT_KEYS = ("aspFlow", "dspFlow", "aspHeight", "dspHeight", "tipDiscard", "head", "preMix", "passes", "group")
 PREMIX_UL = 150   # volume of each pre-mix cycle (the Prep mixes in the source with this much, capped by the tip)
 HARDWARE = {"hhs": False, "hhc": False, "hepaUv": False, "twoChannel": False, "mph": True, "siteOne": False}
 REPORT = {"savePdf": False, "saveJson": False, "savePipettingCsv": False, "pipettingCsvPerStep": False, "reportPath": None}
@@ -306,7 +306,7 @@ class _Compiler:
             r["stepOrder"] = n
             steps.append(r)
         used = {r.get("channelSelection") for r in steps} - {None}   # a protocol that picks heads per step needs both
-        hw = dict(HARDWARE, hhs=self.has_shake, twoChannel=("TwoChannel" in used) if used else self.channels == "TwoChannel", mph=("EightChannel" in used) if used else self.channels != "TwoChannel")
+        hw = dict(HARDWARE, hhs=self.has_shake, twoChannel=bool({"TwoChannel", "OneChannel"} & used) if used else self.channels == "TwoChannel", mph=("EightChannel" in used) if used else self.channels != "TwoChannel")
         out = {"name": sp["name"]}
         if sp.get("description"):
             out["description"] = sp["description"]
@@ -317,7 +317,7 @@ class _Compiler:
 
     def ch(self, s):
         """The head for step s: its own `head` option, else the protocol-wide one (2-channel when a 384-well plate is on the deck)."""
-        return {"two": "TwoChannel", "eight": "EightChannel"}.get(s.get("head"), self.channels)
+        return {"two": "TwoChannel", "eight": "EightChannel", "one": "OneChannel"}.get(s.get("head"), self.channels)
 
     def fail(self, i, msg):
         raise ConverterUnavailable(f"Step {i + 1} ({self.spec['steps'][i]['type']}): {msg}")
@@ -339,6 +339,7 @@ class _Compiler:
         fit = sorted([r for r in avail if r["vol"] >= vol], key=lambda r: (r["vol"], r["pos"])) or sorted(avail, key=lambda r: (-r["vol"], r["pos"]))
         r = fit[0]
         r["used"] += n
+        self.last_rack = r
         self.tip_vol = r["vol"]
         return self.group(self.spec["deck"][r["pos"]]["lw"], self.obj[self.spec["deck"][r["pos"]]["lw"]], tag=("rack", r["pos"]))["id"]
 
@@ -365,6 +366,8 @@ class _Compiler:
                 last["rec"]["destinations"][0]["addresses"] += rec["destinations"][0]["addresses"]
             last["wells"] += list(wells_key)
             last["spec_i"] = spec_i
+            if rec["stepType"] == "TransferSamplesStep" and not rec["newTipsEachTransfer"] and getattr(self, "last_rack", None):
+                self.last_rack["used"] -= 1   # a merged keep-tip step reuses the tip(s) of the first: give back the tip this spec step took
             return
         self.records.append(rec)
         self.last = {"rec": rec, "sig": sig, "spec_i": spec_i, "wells": list(wells_key), "mixed": False}
@@ -450,6 +453,7 @@ class _Compiler:
             single = s.get("multiDispense") is False   # one aspirate and one dispense per well, a fresh tip for each well; never merged into a multi-dispense
             if single:
                 pairs = [(slot, [w]) for slot, wells in pairs for w in wells]
+            passes = s.get("passes", 1) if single else 1   # several aspirate+dispense rounds into one well on ONE tip
             for slot, wells in pairs:
                 g = self.slot_group.get((sh, slot if tube_reagent else slot[0] - 1))
                 if g is None or not g["liquidName"]:
@@ -463,14 +467,14 @@ class _Compiler:
                 else:
                     md = self.multi_dispense(vol, i)
                 rec = {"channelSelection": head, "tipLabwareGroupId": tip, "tipLabwareDisplayName": None, "liquidLabwareGroupId": g["id"],
-                       "newTipsEachTransfer": single, "mixBeforeAspirate": False, "mixAfterDispense": False, "multiDispense": not single,
+                       "newTipsEachTransfer": single and passes == 1, "mixBeforeAspirate": False, "mixAfterDispense": False, "multiDispense": not single,
                        "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste",
                        "multiDispenseSettings": md, "aspirateSettings": a, "dispenseSettings": d,
-                       "destinations": [{"position": int(dh), "addresses": _addr(wells)}], "customizeLiquid": False, "customLiquidSettings": None,
+                       "destinations": [{"position": int(dh), "addresses": _addr(list(wells) * passes)}], "customizeLiquid": False, "customLiquidSettings": None,
                        "stepType": "AddReagentStep", "id": 0, "name": g["liquidName"], "stepOrder": 0, "disabled": False}
                 self.apply_opts(s, rec)
                 if tube_reagent:
-                    self.tube_draw(sh, slot, vol, len(wells), md if not single else None, rec["channelSelection"])
+                    self.tube_draw(sh, slot, vol, len(wells) * passes, md if not single else None, rec["channelSelection"])
                 self.emit(rec, i, ("add", sh, slot, dh, vol, self.opts(s)) + ((object(),) if single else ()), wells)
             return
         if skind not in ("plate", "tubes") or dkind not in ("plate", "tubes"):
@@ -541,6 +545,11 @@ class _Compiler:
         d = last["rec"]["dispenseSettings"]
         last["rec"]["mixAfterDispense"] = True
         d["mixVolume"], d["mixCycles"] = _num(s["vol"]), s["cycles"]
+        if "flow" in s:   # a slower mix: custom liquid settings with only the two mix flows changed (the normal flows stay the Aqueous defaults)
+            rec = last["rec"]
+            if not (rec.get("customizeLiquid") and rec.get("customLiquidSettings")):
+                rec["customizeLiquid"], rec["customLiquidSettings"] = True, copy.deepcopy(CUSTOM_LIQUID)
+            rec["customLiquidSettings"]["asMixFlowRate"] = rec["customLiquidSettings"]["dsMixFlowRate"] = _num(s["flow"])
         last["mixed"] = True
         self.last = last  # keep for adjacency only; "mixed" blocks further growth and a second mix
 

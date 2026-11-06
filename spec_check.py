@@ -326,10 +326,10 @@ def check(data):
         def head(st):  # optional 8-channel settings, shared by every pipetting step
             v = g("head", MISSING)
             if not (v is MISSING or v is None or v == ""):
-                if v in ("two", "eight"):
+                if v in ("two", "eight", "one"):
                     st["head"] = v
                 else:
-                    errors.append({"path": f"{p}.head", "msg": 'must be "two" or "eight"'})
+                    errors.append({"path": f"{p}.head", "msg": 'must be "one", "two" or "eight"'})
             v = g("channels", MISSING)
             if not (v is MISSING or v is None or v == ""):
                 if _is_number(v) and v in (1, 8):
@@ -372,12 +372,22 @@ def check(data):
                     st["multiDispense"] = v
                 else:
                     errors.append({"path": f"{p}.multiDispense", "msg": "must be true or false"})
+            v = g("passes", MISSING)   # with multiDispense false: aspirate + dispense this many times into each well on ONE tip (for volumes over the tip size)
+            if not (v is MISSING or v is None or v == ""):
+                st["passes"] = _num(v, f"{p}.passes", errors, 1, 4, integer=True)
+            v = g("group", MISSING)   # steps with the same group number may merge into one Prep step; different groups never do (keeps each construct on its own tips)
+            if not (v is MISSING or v is None or v == ""):
+                st["group"] = _num(v, f"{p}.group", errors, 0, 100000, integer=True)
             spec["steps"].append(head(st))
         elif t == "mix":
             cycles = g("cycles", MISSING)
-            spec["steps"].append(head({"type": "mix", "pos": _pos(g("pos", MISSING), f"{p}.pos", errors),
-                                       "wells": _wells(g("wells", MISSING), f"{p}.wells", errors), "vol": _vol(s, f"{p}.vol", errors),
-                                       "cycles": _num(3 if cycles is MISSING else cycles, f"{p}.cycles", errors, 1, LIMITS["cycles"], integer=True, fallback=1)}))
+            mst = {"type": "mix", "pos": _pos(g("pos", MISSING), f"{p}.pos", errors),
+                   "wells": _wells(g("wells", MISSING), f"{p}.wells", errors), "vol": _vol(s, f"{p}.vol", errors),
+                   "cycles": _num(3 if cycles is MISSING else cycles, f"{p}.cycles", errors, 1, LIMITS["cycles"], integer=True, fallback=1)}
+            v = g("flow", MISSING)   # mix flow rate in uL/s (the Prep's default is 120; slower is gentler on cells)
+            if not (v is MISSING or v is None or v == ""):
+                mst["flow"] = _num(v, f"{p}.flow", errors, 1, LIMITS["flow"])
+            spec["steps"].append(head(mst))
         elif t == "discard":
             spec["steps"].append(head({"type": "discard", "pos": _pos(g("pos", MISSING), f"{p}.pos", errors),
                                        "wells": _wells(g("wells", MISSING), f"{p}.wells", errors), "vol": _vol(s, f"{p}.vol", errors)}))
