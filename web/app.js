@@ -413,7 +413,29 @@ function rstage(name, st) { RUN.stages[name] = st; runUI(); paintPill(); }
 function resetRun(title, kind) { Object.assign(RUN, { active: true, kind, stages: {}, log: [], issues: [], deck: null, checks: new Set(), gate: null, job: null, abortFlag: false, title, progress: '' }); paintPill(); }
 const checkAbort = () => { if (RUN.abortFlag) throw Object.assign(new Error('Stopped'), { aborted: true }); };
 
-async function runInstrument({ id, name, simulate, onDone, onStart }) {
+/** The deck as the editor draws it (the protocol's own spec at its starting state), so the load screen matches the editor.
+ *  Returns null if the spec can't be drawn; the caller then falls back to what the Prep reports. */
+function specDeckSlots(spec, values) {
+  try {
+    const Calc = PSBACalc.prepProtocol;
+    const r = spec.variables && spec.variables.length ? Calc.resolve(spec, values || {}) : { spec };
+    if (!r.spec) return null;
+    useLib({ ...(typeof BUILDER !== 'undefined' && BUILDER.hw || {}), ...(r.spec.labware || {}) });
+    const res = Calc.simulate(r.spec), snap = res.initial, p = r.spec, fills = {};
+    for (const [k, c] of Object.entries(snap.vol || {})) {
+      const [id, well] = k.split(':'), lw = LIB[p.deck[id]?.lw]; if (!lw || c.vol <= 0) continue;
+      (fills[id] ||= {})[well] = { color: liqColor(c.liquid), frac: Math.min(1, c.vol / lw.cap) };
+    }
+    return fixedSlots(8).map(sl => {
+      const id = snap.occ[sl.pos], d = id != null ? p.deck[id] : null, fixture = p.deck[sl.pos], magnet = LIB[fixture?.lw]?.kind === 'magnet';
+      if (!d) return magnet ? { ...sl, lw: fixture.lw, label: fixture.label } : sl;
+      const t = (snap.tips || []).find(x => x.pos === sl.pos), used = new Set();
+      if (t) for (let k = 0; k < t.used; k++) used.add(wellName(k % 8, Math.floor(k / 8)));
+      return { ...sl, lw: d.lw, label: d.label, magnet, fills: fills[id], used: t ? used : undefined };
+    });
+  } catch { return null; }
+}
+async function runInstrument({ id, name, simulate, onDone, onStart, layout }) {
   resetRun(name || id, 'prep'); RUN.simulate = simulate; runUI();
   let finishedOk = false;
   try {
