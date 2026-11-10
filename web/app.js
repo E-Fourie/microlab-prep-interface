@@ -436,7 +436,7 @@ function specDeckSlots(spec, values) {
   } catch { return null; }
 }
 async function runInstrument({ id, name, simulate, onDone, onStart, layout }) {
-  resetRun(name || id, 'prep'); RUN.simulate = simulate; runUI();
+  resetRun(name || id, 'prep'); RUN.simulate = simulate; RUN.layout = layout || null; runUI();
   let finishedOk = false;
   try {
     rstage('Preflight', 'active');
@@ -600,7 +600,7 @@ async function startFlow(item) {
       }
     } catch (e) { return toast(fmtErr(e.detail || e), true); }
   }
-  const p = runInstrument({ id, name: item.title, simulate }); navigate('run'); return p;
+  const p = runInstrument({ id, name: item.title, simulate, layout: spec ? { spec } : null }); navigate('run'); return p;
 }
 
 /** Run a Builder protocol: ask for its variables, compile it with the converter (compiler.py) and run it. If it can't be compiled, show the simulation. Nothing starts by itself. */
@@ -617,7 +617,7 @@ async function runBuilderProtocol(item, spec) {
   let id;
   try { toast('Putting it on the Prep for this run…'); ({ id } = await local('POST', '/oneoff/prep', { raw, name: item.title })); }
   catch (e) { return toast(fmtErr(e.detail || e), true); }
-  const p = runInstrument({ id, name: item.title, simulate: S.cfg.mock || choice.practice, onDone: () => local('DELETE', '/oneoff/prep/' + enc(id)) });
+  const p = runInstrument({ id, name: item.title, simulate: S.cfg.mock || choice.practice, layout: { spec, values }, onDone: () => local('DELETE', '/oneoff/prep/' + enc(id)) });
   navigate('run'); return p;
 }
 
@@ -838,11 +838,14 @@ VIEWS.run = {
     const issues = RUN.issues.map(i => `<div class="issue ${i.level}"><span class="ico">${{ error: '✕', warn: '!', info: 'i', ok: '✓' }[i.level]}</span><div><b>${esc(i.title)}</b>${i.detail ? esc(i.detail) : ''}</div></div>`).join('');
     let deck = '';
     if (RUN.deck) {
-      const n = Math.max(8, Math.ceil(RUN.deck.positions.length / 4) * 4), sl = fixedSlots(n);
-      RUN.deck.positions.forEach(p => {
-        const idx = /^[1-9]\d*$/.test(p.pos) && +p.pos <= n && !sl[+p.pos - 1].lw ? +p.pos - 1 : sl.findIndex(s => !s.lw);
-        sl[idx] = { pos: p.pos, lw: p.lw, label: p.label, fills: p.fills, need: p.need };
-      });
+      let sl = RUN.layout && specDeckSlots(RUN.layout.spec, RUN.layout.values);
+      if (!sl) {
+        const n = Math.max(8, Math.ceil(RUN.deck.positions.length / 4) * 4); sl = fixedSlots(n);
+        RUN.deck.positions.forEach(p => {
+          const idx = /^[1-9]\d*$/.test(p.pos) && +p.pos <= n && !sl[+p.pos - 1].lw ? +p.pos - 1 : sl.findIndex(s => !s.lw);
+          sl[idx] = { pos: p.pos, lw: p.lw, label: p.label, fills: p.fills, need: p.need };
+        });
+      }
       deck = `<div class="panel"><div class="card-head"><div><h2>Load the deck</h2><span class="small muted">Hover a position on the map to see what goes in it.</span></div></div>
         <div class="grid cols-deck"><div class="deck-wrap" id="deckmap">${deckSVG(sl, { done: new Set() })}</div>
         <div class="checklist">${RUN.deck.positions.map(p => `<div class="check" data-pos="${esc(p.pos)}"><div><b>Position ${esc(p.pos)}${p.pos === HHS_POS ? ' · Heater-Shaker' : ''} · ${esc(LIB[p.lw].label)}</b>${p.lines.map(l => `<div class="small muted">${esc(l.text)}</div>`).join('')}</div></div>`).join('')}</div></div>
