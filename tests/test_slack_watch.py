@@ -34,6 +34,22 @@ class Policy(unittest.TestCase):
         self.assertEqual(w.handle(err("No tip was present for the MPH to pick up", ("Cancel Assay", "Retry", "Abort", "Move to Next", "Exclude Channel")), DATA, self.state), "auto")
         self.assertEqual(self.sent, [])
 
+    def test_no_liquid_found_is_answered_with_bottom(self):
+        self.assertEqual(w.handle(err("The Front Channel was unable to find any liquid in the well", ("Bottom", "Abort", "Exclude Channel", "Air", "Cancel Assay", "Retry")), DATA, self.state), "auto")
+        self.assertEqual((self.answered, self.sent), (["Bottom"], []))
+
+    def test_fourth_bottom_in_a_row_alerts(self):
+        e = err("The Front Channel was unable to find any liquid in the well", ("Bottom", "Abort"))
+        self.assertEqual([w.handle(e, DATA, self.state) for _ in range(4)], ["auto", "auto", "auto", "alert"])
+        self.assertEqual(len(self.sent), 1)
+
+    def test_refused_bottom_alerts(self):
+        w.RESPOND = lambda e, r: False
+        self.assertEqual(w.handle(err("The Front Channel was unable to find any liquid in the well", ("Bottom", "Abort")), DATA, self.state), "alert")
+
+    def test_not_enough_liquid_still_alerts(self):
+        self.assertEqual(w.handle(err("There is not enough liquid in the well for the Rear Channel to aspirate 53 ul or to immerse 2 mm below the liquid level", ("Retry", "Bottom", "Abort")), DATA, self.state), "alert")
+
     def test_door_error_is_not_auto_answered(self):
         self.assertEqual(w.handle(err("Close the door and continue the assay", ("Abort", "Close Door and Continue")), DATA, self.state), "alert")
 

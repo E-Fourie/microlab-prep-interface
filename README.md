@@ -42,7 +42,7 @@ dropped-in Python scripts. It binds to `127.0.0.1` only.
   heater-shaker and the magnet with the gripper.
 - **Maintenance** - live state, blockers, procedures, one-click fix.
 - **Watcher and Slack (optional)** - while the server runs, `slack_watch.py` watches the Prep. It answers a missing-tip error with
-  *Move to Next* up to 3 times in a row on one step, then leaves it for a person. If you set up a Slack incoming webhook it also posts
+  *Move to Next*, and "unable to find any liquid" with *Bottom*, up to 3 times in a row on one step, then leaves it for a person. If you set up a Slack incoming webhook it also posts
   when the Prep needs someone (an error it can't fix, tips to reload) and when a run finishes. The webhook goes in `protocols/.slack.json`
   as `{"webhook": "https://hooks.slack.com/services/..."}` or in the `SLACK_WEBHOOK_URL` environment variable. With no webhook the watcher
   still answers tip errors and just prints what it would have posted. `python slack_watch.py --test` sends a test message.

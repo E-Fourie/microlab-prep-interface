@@ -322,7 +322,7 @@ class _Compiler:
     def fail(self, i, msg):
         raise ConverterUnavailable(f"Step {i + 1} ({self.spec['steps'][i]['type']}): {msg}")
 
-    def take(self, vol, i, n=None):
+    def take(self, vol, i, n=None, need=None):
         """Tip group for a pipetting call of `vol` uL taking n tips (one per well; an Add Reagent call takes the head's channels). Each rack is its own
         group (the Prep follows the group, not the deck position); a deck entry's `tipsLeft` says how many tips a part-used rack still has, and the
         next rack is used once the first has too few left."""
@@ -336,7 +336,8 @@ class _Compiler:
             fresh[0]["used"] = 0
             self.reloads = getattr(self, "reloads", 0) + 1
             avail = [fresh[0]]
-        fit = sorted([r for r in avail if r["vol"] >= vol], key=lambda r: (r["vol"], r["pos"])) or sorted(avail, key=lambda r: (-r["vol"], r["pos"]))
+        need = need or vol   # a multi-dispense also draws its pre and post aliquots, which the tip must hold with room to spare
+        fit = sorted([r for r in avail if r["vol"] >= need], key=lambda r: (r["vol"], r["pos"])) or sorted(avail, key=lambda r: (-r["vol"], r["pos"]))
         r = fit[0]
         r["used"] += n
         self.last_rack = r
@@ -458,7 +459,7 @@ class _Compiler:
                 g = self.slot_group.get((sh, slot if tube_reagent else slot[0] - 1))
                 if g is None or not g["liquidName"]:
                     self.fail(i, f"{'tube' if tube_reagent else 'reservoir slot'} {ROWS[slot[0] - 1]}{slot[1]} at position {sh} has no liquid in the protocol's contents")
-                tip = self.take(vol, i, 1 if single else 2 if head == "TwoChannel" else 8)
+                tip = self.take(vol, i, 1 if single else 2 if head == "TwoChannel" else 8, None if single else _num(vol) + 2 * (5 if _num(vol) <= 5 else 20))
                 a, d = copy.deepcopy(ADD_REAGENT["aspirateSettings"]), copy.deepcopy(ADD_REAGENT["dispenseSettings"])
                 a["transferVolume"] = d["transferVolume"] = _num(vol)
                 if single:

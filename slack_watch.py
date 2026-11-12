@@ -112,30 +112,38 @@ def options(err):
     return {r["response"] for d in err.get("errorData") or [] for r in d.get("errorResponses") or []} | {r["response"] for r in err.get("errorResponses") or []}
 
 
-def is_tip_error(err):
-    """A tip pick-up problem (wrong or missing tip) that the Prep lets us move past with 'Move to Next', which retries the
-    same step with the next tip. Matches the text on the inner error, e.g. "did not detect the expected tip type in the
-    rack" or "No tip was present for the MPH to pick up"."""
+def auto_response(err):
+    """The response to give this error without asking anyone, or None.
+    - a tip pick-up problem (wrong or missing tip) offering 'Move to Next', which retries the same step with the next tip;
+    - 'unable to find any liquid in the well' offering 'Bottom', which aspirates from the bottom of the well."""
     inner = {r["response"] for d in err.get("errorData") or [] for r in d.get("errorResponses") or []}
-    return "Move to Next" in inner and any(re.search(r"\btip\b", t, re.I) for t in texts(err))
+    msgs = texts(err)
+    if "Move to Next" in inner and any(re.search(r"\btip\b", t, re.I) for t in msgs):
+        return "Move to Next"
+    if "Bottom" in inner and any("unable to find any liquid" in t for t in msgs):
+        return "Bottom"
+    return None
 
 
 def handle(err, data, state, dry=False):
-    """Auto-answer a missing-tip error with 'Move to Next' up to MAX_TIP_RETRIES times in a row on one step. After that (or if
-    the answer fails) it does not try again: it alerts on Slack when a webhook is set up, otherwise only prints. Every other
-    error alerts at once. Without RESPOND nothing is auto-answered."""
+    """Auto-answer the errors auto_response() knows: a missing tip (Move to Next) or 'no liquid found' (Bottom), up to
+    MAX_TIP_RETRIES times in a row on one step. After that, or if the Prep refuses the answer, it does not try again: it
+    alerts on Slack when a webhook is set up, otherwise only prints. Every other error alerts at once.
+    Without RESPOND nothing is auto-answered."""
     step = step_of(data, err.get("timeStamp", ""))
     key = step.get("stepOrder") if step else None
-    if is_tip_error(err) and RESPOND is not None:
+    answer = auto_response(err)
+    if answer and RESPOND is not None:
+        key = (answer, key)
         n = state["tips"][1] + 1 if state["tips"][0] == key else 1
         state["tips"] = (key, n)
         if n <= MAX_TIP_RETRIES:
             try:
-                if RESPOND(err, "Move to Next"):
+                if RESPOND(err, answer):
                     return "auto"
             except Exception as e:
                 print("Auto-answer failed:", e, file=sys.stderr)
-        note = "\n(%d missing-tip errors in a row on this step, or the auto-answer failed. Not retrying.)" % n
+        note = "\n(%d of the same error in a row on this step, or the auto-answer failed. Not retrying.)" % n
         send(error_text(err, data) + note, dry)
         return "alert"
     state["tips"] = (None, 0)
