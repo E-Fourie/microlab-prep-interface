@@ -45,6 +45,7 @@ JOBS_LOCK = threading.Lock()
 
 # ───────────────────────── mock Prep (dev / no instrument) ─────────────────────────
 from mock_prep import MockPrep, SCENARIOS  # noqa: E402
+import slack_watch  # noqa: E402
 from sync import Sync  # noqa: E402
 import compiler  # noqa: E402
 import labware_map  # noqa: E402
@@ -377,9 +378,11 @@ def main():
     CONFIG.update(host=a.host, protocols=os.path.abspath(a.protocols), port=a.port)
     os.makedirs(CONFIG["protocols"], exist_ok=True)
     SYNC.start()
+    slack_on = slack_watch.start(a.host, CONFIG["protocols"])
     srv = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
     print(f"Prep Interface on http://localhost:{a.port}  (Prep at {a.host}; switch to simulation from the machine menu, top right)")
     print(f"Protocol folder: {CONFIG['protocols']}")
+    print("Watcher on: Slack alerts on" if slack_on else "Watcher on (missing-tip auto-answer); Slack alerts off, no webhook in protocols/.slack.json or SLACK_WEBHOOK_URL")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

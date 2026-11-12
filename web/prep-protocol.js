@@ -8,6 +8,7 @@
 //   { name, description, deck: { "1": { lw, label } ... },
 //     contents: [{ pos, wells, liquid, vol }],
 //     steps: [ transfer | distribute (shown as "Add reagent") | mix | discard | shake | pause (optional minutes: a timed pause) | move ] }
+//     (pause steps at the very start or end are dropped by check(): a protocol never starts or ends on a pause)
 //     (every pipetting step may carry channels: 8 to use the 8-channel head (tips are picked up a rack column at a time) and tips: 'each' (fresh
 //     tips for every column) or 'step' (one set for the whole step); tips are never reused, and when the racks run out the machine
 //     pauses for one to be refilled;
@@ -324,6 +325,7 @@
    *   takes single wells), and the 8-channel head can only pipette whole columns (A-H of one column).
    * - A plate only goes onto the magnet if it lists the magnet's alignment (the PCR plate does not fit the Ring Stand magnet; being full skirt does not help).
    * - A tube used as a source needs a liquid in `contents` (the Prep has to be told what each tube holds).
+   * - A tube can only be drawn from by the 2-channel head: head 'eight' on a tube source is refused (the Prep says "Liquid source is invalid for the selected pipettor").
    */
   function headErrors(spec) {
     const lib = libFor(spec), deck = spec.deck, out = [];

@@ -45,6 +45,7 @@ checkers must agree on all of them.
 ## Layout
 
 - `server.py` - static files, `/prep/*` proxy, `/local/*` API (protocol folder, jobs, config, mock switch)
+- `slack_watch.py` - the Prep watcher: auto-answers missing-tip errors (3 in a row, then stops), and with an optional Slack webhook posts errors, tip reloads and run results
 - `sync.py` - favourites ↔ Prep sync (background thread, state in `protocols/.prep-sync*.json`)
 - `spec_check.py` - Python port of the shared protocol checker; `compiler.py` - spec -> raw Prep protocol (`ConverterUnavailable` when it cannot be done faithfully); `labware_map.py` - labware key -> Prep catalogue (labware_catalogue.json, liquid_classes.json) (`GET`/`PUT /local/labware-map`, `protocols/.labware-map.json`)
 - catalogue: `GET /local/labware` lists what the Builder offers (the Prep's labware and liquid classes); nothing can be added

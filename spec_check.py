@@ -528,7 +528,8 @@ def head_errors(spec, mapping=None):
     - Plate-to-plate transfers on 96-well plates run on the 8-channel head, which can only pipette whole columns (the 2-channel head
       is used when a 384-well plate is on the deck, and takes single wells).
     - A plate only goes onto the magnet if it lists the magnet's alignment.
-    - A tube used as a source needs a liquid in `contents`."""
+    - A tube used as a source needs a liquid in `contents`.
+    - A tube can only be drawn from by the 2-channel head: head "eight" on a tube source is refused."""
     lib, deck, out = lib_for(spec), spec["deck"], []
     rows = lambda k: 16 if k == "plate_384" else lib[k].get("rows", 8)
     eight = not any(rows(d["lw"]) > 8 for d in deck.values())
