@@ -60,7 +60,8 @@ CUSTOM_LIQUID = {"id": 0, "asFlowRate": 250, "asMixFlowRate": 120, "asBlowOutVol
                  "correctionCurve": [{"target": t, "value": v, "isUserAdded": False} for t, v in
                                      ((0, 0), (10, 13), (20, 24.2), (50, 55.7), (100, 107.1), (200, 208.9), (500, 514.3), (1000, 1022))],
                  "isUserLiquid": False}
-OPT_KEYS = ("aspFlow", "dspFlow", "aspHeight", "dspHeight", "tipDiscard", "head", "preMix", "passes", "group")
+OPT_KEYS = ("aspFlow", "dspFlow", "aspHeight", "dspHeight", "tipDiscard", "head", "preMix", "passes", "group",
+            "mixFlow", "mixSpeed", "mixAfter", "mixVol", "mixCycles", "tipVol", "newTips", "preMixVol", "preAliquot", "postAliquot")
 PREMIX_UL = 150   # volume of each pre-mix cycle (the Prep mixes in the source with this much, capped by the tip)
 HARDWARE = {"hhs": False, "hhc": False, "hepaUv": False, "twoChannel": False, "mph": True, "siteOne": False}
 REPORT = {"savePdf": False, "saveJson": False, "savePipettingCsv": False, "pipettingCsvPerStep": False, "reportPath": None}
@@ -249,12 +250,14 @@ class _Compiler:
 
     def build_deck(self):
         deck, self.slot_group = [], {}
-        liquids = {}
+        liquids, declared = {}, {}
         for c in self.spec["contents"]:
             if c["pos"] in self.spec["deck"] and self.kind(c["pos"]) in ("reservoirs", "trough"):
                 rows, cols = self.dims(self.spec["deck"][c["pos"]]["lw"])
                 for r, col in expand_wells(c["wells"], rows, cols, f"contents at position {c['pos']}"):
                     liquids[(c["pos"], r - 1)] = c["liquid"]
+                    if c.get("declare"):   # declare: the row's volume is told to the Prep as the slot's liquid level (else the whole reservoir is declared full)
+                        declared[(c["pos"], r - 1)] = c["vol"]
         for n in range(1, 9):
             pos = str(n)
             e = {"labwarePositions": [], "id": 0, "labwareGroup": None, "position": n, "positionName": "", "liquidVolume": 0}
@@ -277,7 +280,7 @@ class _Compiler:
                         g = self.group(d["lw"], cont, lq, tag=(pos, i) if lq else "empty")
                         self.slot_group[(pos, i)] = g
                         e["labwarePositions"].append({"row": 1, "column": i + 1, "id": 0, "labwareGroup": g, "position": i + 1, "positionName": "",
-                                                      "liquidVolume": _num(cont["volume"]) if lq else 0})
+                                                      "liquidVolume": (_num(declared[(pos, i)]) if (pos, i) in declared else _num(cont["volume"])) if lq else 0})
                 elif kind == "tubes":
                     e["labwarePositions"] = self.tube_positions(pos, o)
             deck.append(e)
@@ -322,15 +325,18 @@ class _Compiler:
     def fail(self, i, msg):
         raise ConverterUnavailable(f"Step {i + 1} ({self.spec['steps'][i]['type']}): {msg}")
 
-    def take(self, vol, i, n=None, need=None):
+    def take(self, vol, i, n=None, need=None, tip_vol=None):
         """Tip group for a pipetting call of `vol` uL taking n tips (one per well; an Add Reagent call takes the head's channels). Each rack is its own
         group (the Prep follows the group, not the deck position); a deck entry's `tipsLeft` says how many tips a part-used rack still has, and the
         next rack is used once the first has too few left."""
         n = n or 1
-        avail = [r for r in self.racks if r["used"] + n <= r["total"]]
+        racks = [r for r in self.racks if tip_vol is None or r["vol"] == tip_vol]   # a step may name the tip rack size it takes its tips from
+        if not racks:
+            self.fail(i, f"the step takes {_num(tip_vol)} uL tips but no {_num(tip_vol)} uL tip rack is on the deck")
+        avail = [r for r in racks if r["used"] + n <= r["total"]]
         if not avail:
             # Every rack is used up: the Prep stops and asks for tips to be reloaded, so carry on as if the first rack that can hold n tips was refilled.
-            fresh = [r for r in self.racks if n <= r["total"]]
+            fresh = [r for r in racks if n <= r["total"]]
             if not fresh:
                 self.fail(i, f"one step needs {n} tips but no rack holds that many")
             fresh[0]["used"] = 0
@@ -338,6 +344,8 @@ class _Compiler:
             avail = [fresh[0]]
         need = need or vol   # a multi-dispense also draws its pre and post aliquots, which the tip must hold with room to spare
         fit = sorted([r for r in avail if r["vol"] >= need], key=lambda r: (r["vol"], r["pos"])) or sorted(avail, key=lambda r: (-r["vol"], r["pos"]))
+        if tip_vol is not None:
+            fit = sorted(avail, key=lambda r: r["pos"])
         r = fit[0]
         r["used"] += n
         self.last_rack = r
@@ -373,7 +381,7 @@ class _Compiler:
         self.records.append(rec)
         self.last = {"rec": rec, "sig": sig, "spec_i": spec_i, "wells": list(wells_key), "mixed": False}
 
-    def multi_dispense(self, vol, i):
+    def multi_dispense(self, vol, i, s=None):
         """The real protocol primes and finishes every multi-dispense with a 20 uL aliquot; for droplet-sized dispenses (<= 5 uL) that is far too much, so use 5 uL.
         The aliquots are shrunk so volume + 2 aliquots fits the tip (the Prep refuses anything over the tip's capacity), and they are blown out to waste, not back into the reagent."""
         m = copy.deepcopy(ADD_REAGENT["multiDispenseSettings"])
@@ -381,11 +389,21 @@ class _Compiler:
         room = (self.tip_vol - vol) / 2
         if room < aliquot:
             aliquot = _num(math.floor(room * 10) / 10)
-            if aliquot < MIN_ALIQUOT:
+            if aliquot < MIN_ALIQUOT and not (s and ("preAliquot" in s or "postAliquot" in s)):   # sizes the step names are checked below
                 self.fail(i, f"a multi-dispense of {vol} uL needs a pre and post aliquot of at least {MIN_ALIQUOT} uL each in the {self.tip_vol} uL tip. "
                              f"Use a smaller volume per dispense or set multiDispense to false on the step (one aspirate and one dispense per well)")
         for k in ("preAliquotSettings", "postAliquotSettings"):
             m[k]["volume"], m[k]["sampleDiscardLocation"] = aliquot, "Waste"
+        for k, key in (("preAliquotSettings", "preAliquot"), ("postAliquotSettings", "postAliquot")):   # sizes the step names are written as given
+            if s and key in s:
+                m[k]["volume"] = _num(s[key])
+        if s and ("preAliquot" in s or "postAliquot" in s):
+            pre, post = m["preAliquotSettings"]["volume"], m["postAliquotSettings"]["volume"]
+            if min(pre, post) < MIN_ALIQUOT:
+                self.fail(i, f"a multi-dispense needs a pre and post aliquot of at least {MIN_ALIQUOT} uL each (got {pre} and {post} uL in the {self.tip_vol} uL tip)")
+            if vol + pre + post > self.tip_vol:
+                self.fail(i, f"a multi-dispense of {vol} uL with aliquots of {pre} and {post} uL needs {_num(vol + pre + post)} uL but the {self.tip_vol} uL tip holds less. "
+                             "Use smaller aliquots or a smaller volume per dispense")
         return m
 
     @staticmethod
@@ -393,25 +411,41 @@ class _Compiler:
         """The optional pipetting settings of a transfer/distribute step, as a hashable value (part of what lets two steps merge)."""
         return tuple((k, s[k]) for k in OPT_KEYS if k in s)
 
-    def apply_opts(self, s, rec):
+    def apply_opts(self, s, rec, i=0):
         """Write the step's optional settings into the Prep step `rec`; with none given the record is unchanged."""
         a, d = rec["aspirateSettings"], rec["dispenseSettings"]
         if "aspHeight" in s:
             a["pipettingHeight"], a["pipettingHeightStartPoint"] = _num(s["aspHeight"]), "FromLiquidLevel"
         if "dspHeight" in s:
             d["pipettingHeight"], d["pipettingHeightStartPoint"] = _num(s["dspHeight"]), "FromContainerBottom"
-        if "aspFlow" in s or "dspFlow" in s:
+        if "aspFlow" in s or "dspFlow" in s or "mixFlow" in s:
+            # every flow the step names is written as given (both flows and both mix flows); one it leaves out keeps the template's value
             c = copy.deepcopy(CUSTOM_LIQUID)
             if "aspFlow" in s:
                 c["asFlowRate"] = _num(s["aspFlow"])
             if "dspFlow" in s:
                 c["dsFlowRate"] = _num(s["dspFlow"])
+            if "mixFlow" in s:
+                c["asMixFlowRate"] = c["dsMixFlowRate"] = _num(s["mixFlow"])
             rec["customizeLiquid"], rec["customLiquidSettings"] = True, c
+        if "mixSpeed" in s:
+            a["mixSpeed"] = d["mixSpeed"] = _num(s["mixSpeed"])
+        if "newTips" in s and rec["stepType"] == "TransferSamplesStep":
+            rec["newTipsEachTransfer"] = bool(s["newTips"])
+        for key in ("mixVol", "preMixVol"):
+            if key in s and s[key] > self.tip_vol:
+                self.fail(i, f"{key} {s[key]} uL is more than the {self.tip_vol} uL tip holds")
+        if "mixVol" in s:
+            d["mixVolume"] = _num(s["mixVol"])
+        if "mixCycles" in s:
+            d["mixCycles"] = s["mixCycles"]
+        if s.get("mixAfter"):
+            rec["mixAfterDispense"] = True
         if s.get("tipDiscard") == "rack":
             rec["tipDiscardLocation"] = "ReturnToRack"
         if "preMix" in s:   # mix the source before the first aspirate (cycles of up to PREMIX_UL, never more than half the tip)
             rec["mixBeforeAspirate"] = True
-            a["mixCycles"], a["mixVolume"] = s["preMix"], _num(min(PREMIX_UL, self.tip_vol / 2))
+            a["mixCycles"], a["mixVolume"] = s["preMix"], _num(s["preMixVol"]) if "preMixVol" in s else _num(min(PREMIX_UL, self.tip_vol / 2))
 
     def step_transfer(self, s, i):
         self.pipette(s, i, s["type"] == "distribute")
@@ -459,21 +493,21 @@ class _Compiler:
                 g = self.slot_group.get((sh, slot if tube_reagent else slot[0] - 1))
                 if g is None or not g["liquidName"]:
                     self.fail(i, f"{'tube' if tube_reagent else 'reservoir slot'} {ROWS[slot[0] - 1]}{slot[1]} at position {sh} has no liquid in the protocol's contents")
-                tip = self.take(vol, i, 1 if single else 2 if head == "TwoChannel" else 8, None if single else _num(vol) + 2 * (5 if _num(vol) <= 5 else 20))
+                tip = self.take(vol, i, 1 if single else 2 if head == "TwoChannel" else 8, None if single else _num(vol) + 2 * (5 if _num(vol) <= 5 else 20), s.get("tipVol"))
                 a, d = copy.deepcopy(ADD_REAGENT["aspirateSettings"]), copy.deepcopy(ADD_REAGENT["dispenseSettings"])
                 a["transferVolume"] = d["transferVolume"] = _num(vol)
                 if single:
                     md = copy.deepcopy(ADD_REAGENT["multiDispenseSettings"])
                     md["usePreAliquot"] = md["usePostAliquot"] = False
                 else:
-                    md = self.multi_dispense(vol, i)
+                    md = self.multi_dispense(vol, i, s)
                 rec = {"channelSelection": head, "tipLabwareGroupId": tip, "tipLabwareDisplayName": None, "liquidLabwareGroupId": g["id"],
                        "newTipsEachTransfer": single and passes == 1, "mixBeforeAspirate": False, "mixAfterDispense": False, "multiDispense": not single,
                        "tipReuseOption": "PerSample", "tipDiscardLocation": "DiscardToWaste",
                        "multiDispenseSettings": md, "aspirateSettings": a, "dispenseSettings": d,
                        "destinations": [{"position": int(dh), "addresses": _addr(list(wells) * passes)}], "customizeLiquid": False, "customLiquidSettings": None,
                        "stepType": "AddReagentStep", "id": 0, "name": g["liquidName"], "stepOrder": 0, "disabled": False}
-                self.apply_opts(s, rec)
+                self.apply_opts(s, rec, i)
                 if tube_reagent:
                     self.tube_draw(sh, slot, vol, len(wells) * passes, md if not single else None, rec["channelSelection"])
                 self.emit(rec, i, ("add", sh, slot, dh, vol, self.opts(s)) + ((object(),) if single else ()), wells)
@@ -497,7 +531,7 @@ class _Compiler:
                     self.fail(i, f"the {role} wells are not whole columns. Plate-to-plate transfers on 96-well plates use the 8-channel head, which can only "
                                  "pipette whole columns (A-H of one column, e.g. A1:H1); the Prep refuses any other pattern. Select full columns, or put a 384-well plate "
                                  "on the deck to use the 2-channel head")
-        tips = {self.take(vol, i, 1 if distribute else len(src))}   # one rack for the whole step
+        tips = {self.take(vol, i, 1 if distribute else len(src), tip_vol=s.get("tipVol"))}   # one rack for the whole step
         if len(tips) != 1:
             self.fail(i, "tips would come from different kinds of rack inside one step")
         a, d = copy.deepcopy(TRANSFER["aspirateSettings"]), copy.deepcopy(TRANSFER["dispenseSettings"])
@@ -507,7 +541,7 @@ class _Compiler:
                "aspirateSettings": a, "dispenseSettings": d, "sources": [{"position": int(sh), "addresses": _addr(src)}],
                "destinations": [{"position": int(dh), "addresses": _addr(dst)}], "customizeLiquid": False, "customLiquidSettings": None,
                "stepType": "TransferSamplesStep", "id": 0, "name": "Transfer", "stepOrder": 0, "disabled": False}
-        self.apply_opts(s, rec)
+        self.apply_opts(s, rec, i)
         self.emit(rec, i, ("xfer", sh, dh, vol, self.opts(s), distribute), dst)
 
     def step_discard(self, s, i):
@@ -519,7 +553,7 @@ class _Compiler:
         if self.ch(s) == "EightChannel" and kind == "plate" and not spec_check._whole_columns([(r - 1, c - 1) for r, c in wells]):
             self.fail(i, "the wells are not whole columns. Discards on 96-well plates use the 8-channel head, which can only pipette whole columns "
                          "(A-H of one column, e.g. A1:H1). Select full columns, or put a 384-well plate on the deck to use the 2-channel head")
-        tips = {self.take(s["vol"], i, len(wells))}
+        tips = {self.take(s["vol"], i, len(wells), tip_vol=s.get("tipVol"))}
         if len(tips) != 1:
             self.fail(i, "tips would come from different kinds of rack inside one step")
         a, d = copy.deepcopy(TRANSFER["aspirateSettings"]), copy.deepcopy(TRANSFER["dispenseSettings"])
@@ -529,7 +563,7 @@ class _Compiler:
                "aspirateSettings": a, "dispenseSettings": d, "sources": [{"position": int(h), "addresses": _addr(wells)}],
                "destinations": [], "customizeLiquid": False, "customLiquidSettings": None,
                "stepType": "TransferSamplesStep", "id": 0, "name": "Discard", "stepOrder": 0, "disabled": False}
-        self.apply_opts(s, rec)
+        self.apply_opts(s, rec, i)
         self.records.append(rec)
         self.last = None  # never merged with a neighbouring step
 
@@ -543,6 +577,8 @@ class _Compiler:
                 and {(a["row"], a["column"]) for a in last["rec"]["destinations"][0]["addresses"]} == set(wells)):
             self.fail(i, "a mix can only be expressed as mix-after-dispense on the transfer or add-reagent step right before it, on exactly the wells that step filled. "
                          "(An add-reagent step with multiDispense off is one Prep step per well, so it cannot be mixed. Mixing other wells is not supported.)")
+        if last["rec"]["mixAfterDispense"]:
+            self.fail(i, "the step before already mixes after its dispense (mixAfter), so this mix step would be a second mix. Remove one of them")
         d = last["rec"]["dispenseSettings"]
         last["rec"]["mixAfterDispense"] = True
         d["mixVolume"], d["mixCycles"] = _num(s["vol"]), s["cycles"]
@@ -579,7 +615,7 @@ class _Compiler:
         self.last = None
         if s.get("minutes"):   # the Prep's timed pause: waits `duration` seconds by itself (its message is not shown, so the text goes in the name)
             self.records.append({"duration": _num(round(s["minutes"] * 60, 3)), "message": None, "pauseForSetDuration": True,
-                                 "stepType": "PauseStep", "id": 0, "name": s["message"][:60], "stepOrder": 0, "disabled": False})
+                                 "stepType": "PauseStep", "id": 0, "name": s["message"] if s.get("fullName") else s["message"][:60], "stepOrder": 0, "disabled": False})
             return
         self.records.append({"duration": DEFAULT_PAUSE_SECONDS, "message": s["message"], "pauseForSetDuration": False,
                              "stepType": "PauseStep", "id": 0, "name": "Wait Step", "stepOrder": 0, "disabled": False})

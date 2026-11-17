@@ -176,6 +176,44 @@ def ref_name(v):
     return v.strip(JS_WS)[1:] if isinstance(v, str) and re.fullmatch(r"\$[A-Za-z][A-Za-z0-9_]{0,23}", v.strip(JS_WS)) else None
 
 
+def _given(v):
+    return not (v is MISSING or v is None or v == "")
+
+
+MIN_ALIQUOT = 5   # uL: the smallest pre or post aliquot (twin of prep-protocol.js)
+
+
+def _pip_opts(g, st, p, errors, flows=False, premix=False, aliquots=False, new_tips=False):
+    """The optional per-step pipetting settings that are not about where liquid goes (twin of pipOpts() in prep-protocol.js).
+    Left out means the compiler's usual value; nothing here is ever filled in."""
+    def opt(k, lo, hi, integer=False):
+        v = g(k, MISSING)
+        if _given(v):
+            st[k] = _num(v, f"{p}.{k}", errors, lo, hi, integer=integer)
+
+    def boolean(k):
+        v = g(k, MISSING)
+        if _given(v):
+            if isinstance(v, bool):
+                st[k] = v
+            else:
+                errors.append({"path": f"{p}.{k}", "msg": "must be true or false"})
+    if flows:
+        opt("aspFlow", 1, LIMITS["flow"]); opt("dspFlow", 1, LIMITS["flow"])
+        opt("aspHeight", -LIMITS["height"], LIMITS["height"]); opt("dspHeight", 0, LIMITS["height"])
+    opt("mixFlow", 1, LIMITS["flow"])   # uL/s of the aspirate mix and the dispense mix
+    opt("mixSpeed", 0, LIMITS["flow"], integer=True)   # the Prep's integer mix speed
+    boolean("mixAfter"); opt("mixVol", 0.1, LIMITS["vol"]); opt("mixCycles", 1, LIMITS["cycles"], integer=True)
+    opt("tipVol", 1, 1000, integer=True)
+    if premix:
+        opt("preMixVol", 0.1, LIMITS["vol"])
+    if aliquots:
+        opt("preAliquot", MIN_ALIQUOT, LIMITS["vol"]); opt("postAliquot", MIN_ALIQUOT, LIMITS["vol"])
+    if new_tips:
+        boolean("newTips")
+    return st
+
+
 def check(data):
     """Clean a protocol from outside. Returns (spec, errors [{path, msg}]); spec only ever holds the known fields."""
     errors = []
@@ -304,10 +342,18 @@ def check(data):
         if not isinstance(c, dict):
             errors.append({"path": p, "msg": "must be an object"})
             continue
-        spec["contents"].append({"pos": _pos(c.get("pos", MISSING), f"{p}.pos", errors),
-                                 "wells": _wells(c.get("wells", MISSING), f"{p}.wells", errors),
-                                 "liquid": _liquid(c.get("liquid", MISSING), f"{p}.liquid", errors),
-                                 "vol": _num(c.get("vol", MISSING), f"{p}.vol", errors, 0, LIMITS["vol"] * 20)})
+        row = {"pos": _pos(c.get("pos", MISSING), f"{p}.pos", errors),
+               "wells": _wells(c.get("wells", MISSING), f"{p}.wells", errors),
+               "liquid": _liquid(c.get("liquid", MISSING), f"{p}.liquid", errors),
+               "vol": _num(c.get("vol", MISSING), f"{p}.vol", errors, 0, LIMITS["vol"] * 20)}
+        dv = c.get("declare", MISSING)   # a reservoir slot: tell the Prep this volume as the slot's liquid level
+        if _given(dv):
+            if isinstance(dv, bool):
+                if dv:
+                    row["declare"] = True
+            else:
+                errors.append({"path": f"{p}.declare", "msg": "must be true or false"})
+        spec["contents"].append(row)
 
     steps = data.get("steps", MISSING)
     if not isinstance(steps, list):
@@ -378,6 +424,7 @@ def check(data):
             v = g("group", MISSING)   # steps with the same group number may merge into one Prep step; different groups never do (keeps each construct on its own tips)
             if not (v is MISSING or v is None or v == ""):
                 st["group"] = _num(v, f"{p}.group", errors, 0, 100000, integer=True)
+            _pip_opts(g, st, p, errors, premix=True, aliquots=t == "distribute", new_tips=t == "transfer")
             spec["steps"].append(head(st))
         elif t == "mix":
             cycles = g("cycles", MISSING)
@@ -389,8 +436,9 @@ def check(data):
                 mst["flow"] = _num(v, f"{p}.flow", errors, 1, LIMITS["flow"])
             spec["steps"].append(head(mst))
         elif t == "discard":
-            spec["steps"].append(head({"type": "discard", "pos": _pos(g("pos", MISSING), f"{p}.pos", errors),
-                                       "wells": _wells(g("wells", MISSING), f"{p}.wells", errors), "vol": _vol(s, f"{p}.vol", errors)}))
+            dst = {"type": "discard", "pos": _pos(g("pos", MISSING), f"{p}.pos", errors),
+                   "wells": _wells(g("wells", MISSING), f"{p}.wells", errors), "vol": _vol(s, f"{p}.vol", errors)}
+            spec["steps"].append(head(_pip_opts(g, dst, p, errors, flows=True, new_tips=True)))
         elif t == "shake":
             temp = g("temp", MISSING)
             sp = g("pos", MISSING)  # the plate to shake, by its starting position (default 1, the heater-shaker itself)
@@ -405,6 +453,14 @@ def check(data):
             mins = g("minutes", MISSING)   # a timed pause: wait this long by itself; left out, the run waits for Continue
             if not (mins is MISSING or mins is None or mins == ""):
                 st["minutes"] = _num(mins, f"{p}.minutes", errors, 0.1, LIMITS["minutes"])
+            for k in ("keep", "fullName"):   # keep: stays even at the start or end; fullName: the whole message is a timed pause's name
+                v = g(k, MISSING)
+                if _given(v):
+                    if isinstance(v, bool):
+                        if v:
+                            st[k] = True
+                    else:
+                        errors.append({"path": f"{p}.{k}", "msg": "must be true or false"})
             spec["steps"].append(st)
         lab = g("label", MISSING)
         if not (lab is MISSING or lab is None or lab == "") and len(spec["steps"]) > before:
@@ -416,9 +472,9 @@ def check(data):
             if i < len(spec["steps"]) and f in spec["steps"][i]:
                 spec["steps"][i][f] = "$" + nm
     # A run never starts or ends on a pause (twin of prep-protocol.js check()).
-    while spec["steps"] and spec["steps"][0]["type"] == "pause":
+    while spec["steps"] and spec["steps"][0]["type"] == "pause" and not spec["steps"][0].get("keep"):   # a pause marked keep stays
         spec["steps"].pop(0)
-    while spec["steps"] and spec["steps"][-1]["type"] == "pause":
+    while spec["steps"] and spec["steps"][-1]["type"] == "pause" and not spec["steps"][-1].get("keep"):
         spec["steps"].pop()
     return spec, errors
 

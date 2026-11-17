@@ -5868,5 +5868,598 @@
     }
    ]
   }
+ },
+ {
+  "name": "per-step mix, speed, aliquot and tip rack fields on a distribute",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1:H1",
+     "vol": 10,
+     "aspFlow": 10,
+     "dspFlow": 10,
+     "mixFlow": 30,
+     "mixSpeed": 30,
+     "mixAfter": true,
+     "mixVol": 35,
+     "mixCycles": 8,
+     "tipVol": 300,
+     "preAliquot": 5,
+     "postAliquot": 20,
+     "preMix": 3,
+     "preMixVol": 20
+    }
+   ]
+  }
+ },
+ {
+  "name": "keep-tips and mix fields on a transfer",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "newTips": false,
+     "mixAfter": false,
+     "mixVol": 20,
+     "mixCycles": 3,
+     "tipVol": 300
+    }
+   ]
+  }
+ },
+ {
+  "name": "flows and heights on a discard",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "discard",
+     "pos": "6",
+     "wells": "A1:H1",
+     "vol": 10,
+     "aspFlow": 20,
+     "dspFlow": 40,
+     "mixFlow": 30,
+     "aspHeight": 2,
+     "dspHeight": 5,
+     "newTips": true
+    }
+   ]
+  }
+ },
+ {
+  "name": "mixFlow of 0",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "mixFlow": 0
+    }
+   ]
+  }
+ },
+ {
+  "name": "mixSpeed not a whole number",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "mixSpeed": 2.5
+    }
+   ]
+  }
+ },
+ {
+  "name": "mixAfter as text",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "mixAfter": "yes"
+    }
+   ]
+  }
+ },
+ {
+  "name": "mixCycles of 0",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "mixCycles": 0
+    }
+   ]
+  }
+ },
+ {
+  "name": "tipVol as text",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "tipVol": "big"
+    }
+   ]
+  }
+ },
+ {
+  "name": "preAliquot below the 5 uL minimum",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "distribute",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1:H1",
+     "vol": 10,
+     "preAliquot": 2
+    }
+   ]
+  }
+ },
+ {
+  "name": "newTips as a number",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10,
+     "newTips": 1
+    }
+   ]
+  }
+ },
+ {
+  "name": "a pause marked keep stays at the start and the end (the run is the pause, a transfer, the pause)",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "load",
+     "keep": true
+    },
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    },
+    {
+     "type": "pause",
+     "message": "seal",
+     "keep": true,
+     "minutes": 1,
+     "fullName": true
+    }
+   ]
+  }
+ },
+ {
+  "name": "keep must be true or false",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000
+    }
+   ],
+   "steps": [
+    {
+     "type": "pause",
+     "message": "load",
+     "keep": "yes"
+    },
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "contents declare must be true or false",
+  "valid": false,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000,
+     "declare": "yes"
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
+ },
+ {
+  "name": "contents declare true",
+  "valid": true,
+  "input": {
+   "name": "ok",
+   "deck": {
+    "2": {
+     "lw": "tips_300",
+     "label": "T"
+    },
+    "4": {
+     "lw": "reservoir_60",
+     "label": "R"
+    },
+    "6": {
+     "lw": "plate_pcr",
+     "label": "P"
+    }
+   },
+   "contents": [
+    {
+     "pos": "4",
+     "wells": "A1",
+     "liquid": "Aqueous",
+     "vol": 1000,
+     "declare": true
+    }
+   ],
+   "steps": [
+    {
+     "type": "transfer",
+     "fromPos": "4",
+     "fromWells": "A1",
+     "toPos": "6",
+     "toWells": "A1",
+     "vol": 10
+    }
+   ]
+  }
  }
 ]

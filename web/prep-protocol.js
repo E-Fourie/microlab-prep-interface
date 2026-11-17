@@ -18,6 +18,12 @@
 //     or the 2-channel head when a 384-well plate is on the deck. The 2-channel head takes single wells; the 8-channel head only whole columns)
 //     (every step may also carry label, a name shown in the Builder and the playback)
 //     (transfer/distribute may also carry aspFlow, dspFlow in uL/s, aspHeight, dspHeight in mm; a reagent step may carry preMix: N (mix the source N times before the first aspirate, to keep beads suspended) and multiDispense: false for one aspirate and one dispense per well with a fresh tip each, needed when volume + 2 x 5 uL aliquots would not fit the tip)
+//     (every pipetting step (transfer, distribute, discard) may also carry, all optional and, when left out, the compiler's usual value: mixFlow (uL/s of both the aspirate and dispense mix),
+//     mixSpeed (the Prep's integer mix speed), mixAfter (true: mix after the dispense; with mixVol uL and mixCycles cycles, which are also kept when mixAfter is off), tipVol (50, 300 or 1000: which tip rack
+//     size the step takes its tips from; without it the smallest rack the volume fits), newTips (false: keep the tips between transfers; transfer and discard only),
+//     preMixVol (uL of each pre-mix cycle, with preMix) and, on a reagent step, preAliquot / postAliquot (uL of the multi-dispense aliquots). aspFlow, dspFlow, aspHeight and dspHeight also work on a discard)
+//     (a pause may carry keep: true to stay even at the very start or end of the protocol, and fullName: true to give a timed pause its whole message as its name instead of the first 60 characters;
+//     a contents row for a reservoir slot may carry declare: true to tell the Prep that volume as the slot's liquid level instead of the full reservoir)
 //     (a tip rack deck entry may carry tipsLeft: how many tips a part-used rack still has)
 //     (every pipetting step may carry tipDiscard 'waste' | 'rack': 'rack' puts each used tip back in the place it came from. It is still a used
 //     tip and is never picked up again, and the machine does not count it as a spare: when the fresh tips run out it asks for a refill
@@ -161,6 +167,26 @@
     return s.toUpperCase();
   }
 
+  const given = v => v !== undefined && v !== null && v !== '';
+  /**
+   * The optional per-step pipetting settings that are not about where liquid goes (see the header). `kinds` says which a step type takes:
+   * flows (aspFlow, dspFlow, aspHeight, dspHeight), premix (preMix, preMixVol), aliquots (preAliquot, postAliquot), newTips.
+   * Left out means the compiler's usual value; nothing here is ever filled in.
+   */
+  function pipOpts(s, st, p, errors, kinds) {
+    const opt = (k, o) => { if (given(s[k])) st[k] = num(s[k], `${p}.${k}`, errors, o); };
+    const bool = k => { if (given(s[k])) { if (typeof s[k] === 'boolean') st[k] = s[k]; else errors.push({ path: `${p}.${k}`, msg: 'must be true or false' }); } };
+    if (kinds.flows) { opt('aspFlow', { min: 1, max: LIMITS.flow }); opt('dspFlow', { min: 1, max: LIMITS.flow }); opt('aspHeight', { min: -LIMITS.height, max: LIMITS.height }); opt('dspHeight', { min: 0, max: LIMITS.height }); }
+    opt('mixFlow', { min: 1, max: LIMITS.flow }); // uL/s of the aspirate mix and the dispense mix
+    opt('mixSpeed', { min: 0, max: LIMITS.flow, int: true }); // the Prep's integer mix speed (units are not documented by the Prep)
+    bool('mixAfter'); opt('mixVol', { min: 0.1, max: LIMITS.vol }); opt('mixCycles', { min: 1, max: LIMITS.cycles, int: true });
+    opt('tipVol', { min: 1, max: 1000, int: true });
+    if (kinds.premix) opt('preMixVol', { min: 0.1, max: LIMITS.vol });
+    if (kinds.aliquots) { opt('preAliquot', { min: MIN_ALIQUOT, max: LIMITS.vol }); opt('postAliquot', { min: MIN_ALIQUOT, max: LIMITS.vol }); }
+    if (kinds.newTips) bool('newTips');
+    return st;
+  }
+
   /** Clean a protocol from outside. Returns { spec, errors: [{ path, msg }] }; spec only ever holds the known fields. */
   function check(input) {
     const errors = [];
@@ -236,7 +262,9 @@
     contents.slice(0, LIMITS.contents).forEach((c, i) => {
       const p = `contents[${i}]`;
       if (!isObj(c)) return errors.push({ path: p, msg: 'must be an object' });
-      spec.contents.push({ pos: pos(c.pos, `${p}.pos`, errors), wells: wells(c.wells, `${p}.wells`, errors), liquid: liquid(c.liquid, `${p}.liquid`, errors), vol: num(c.vol, `${p}.vol`, errors, { min: 0, max: LIMITS.vol * 20 }) });
+      const row = { pos: pos(c.pos, `${p}.pos`, errors), wells: wells(c.wells, `${p}.wells`, errors), liquid: liquid(c.liquid, `${p}.liquid`, errors), vol: num(c.vol, `${p}.vol`, errors, { min: 0, max: LIMITS.vol * 20 }) };
+      if (given(c.declare)) { if (typeof c.declare === 'boolean') { if (c.declare) row.declare = true; } else errors.push({ path: `${p}.declare`, msg: 'must be true or false' }); }
+      spec.contents.push(row);
     });
 
     const steps = Array.isArray(input.steps) ? input.steps : (errors.push({ path: 'steps', msg: 'must be a list' }), []);
@@ -265,16 +293,18 @@
         if (s.multiDispense !== undefined && s.multiDispense !== null && s.multiDispense !== '') { if (typeof s.multiDispense === 'boolean') st.multiDispense = s.multiDispense; else errors.push({ path: `${p}.multiDispense`, msg: 'must be true or false' }); } // false: one aspirate and one dispense per well, a fresh tip for each well (a reagent step only)
         opt('passes', { min: 1, max: 4, int: true }); // with multiDispense false: aspirate + dispense this many times into each well on ONE tip (volumes over the tip size)
         opt('group', { min: 0, max: 100000, int: true }); // steps of one group may merge into one Prep step; different groups never do
+        pipOpts(s, st, p, errors, { premix: true, aliquots: s.type === 'distribute', newTips: s.type === 'transfer' });
         spec.steps.push(head(st));
       }
       else if (s.type === 'mix') { const mst = { type: 'mix', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol(), cycles: num(s.cycles === undefined ? 3 : s.cycles, `${p}.cycles`, errors, { min: 1, max: LIMITS.cycles, int: true, fallback: 1 }) }; if (s.flow !== undefined && s.flow !== null && s.flow !== '') mst.flow = num(s.flow, `${p}.flow`, errors, { min: 1, max: LIMITS.flow }); spec.steps.push(head(mst)); } // flow: mix flow rate in uL/s
-      else if (s.type === 'discard') spec.steps.push(head({ type: 'discard', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol() }));
+      else if (s.type === 'discard') { const dst = { type: 'discard', pos: pos(s.pos, `${p}.pos`, errors), wells: wells(s.wells, `${p}.wells`, errors), vol: vol() }; spec.steps.push(head(pipOpts(s, dst, p, errors, { flows: true, newTips: true }))); }
       else if (s.type === 'shake') spec.steps.push({ type: 'shake', pos: pos(s.pos === undefined || s.pos === '' || s.pos === null ? HHS_POS : s.pos, `${p}.pos`, errors), temp: num(s.temp === undefined ? 0 : s.temp, `${p}.temp`, errors, { min: 0, max: LIMITS.temp }), rpm: num(s.rpm, `${p}.rpm`, errors, { min: 0, max: LIMITS.rpm }), minutes: num(s.minutes, `${p}.minutes`, errors, { min: 0, max: LIMITS.minutes }) });
       else if (s.type === 'move') spec.steps.push({ type: 'move', fromPos: pos(s.fromPos, `${p}.fromPos`, errors), toPos: pos(s.toPos, `${p}.toPos`, errors) });
       else {
         const st = { type: 'pause', message: text(s.message, LIMITS.message, `${p}.message`, errors, { required: true }) };
         // minutes: wait that long by itself and carry on (the Prep's timed pause). Without it the run waits for someone to press Continue.
         if (s.minutes !== undefined && s.minutes !== null && s.minutes !== '') st.minutes = num(s.minutes, `${p}.minutes`, errors, { min: 0.1, max: LIMITS.minutes });
+        ['keep', 'fullName'].forEach(k => { if (given(s[k])) { if (typeof s[k] === 'boolean') { if (s[k]) st[k] = true; } else errors.push({ path: `${p}.${k}`, msg: 'must be true or false' }); } });
         spec.steps.push(st);
       }
       if (s.label !== undefined && s.label !== null && s.label !== '' && spec.steps.length > before) spec.steps[spec.steps.length - 1].label = text(s.label, LIMITS.label, `${p}.label`, errors);
@@ -283,8 +313,9 @@
     if (spec.steps.length === steps.length) refs.forEach(r => { if (spec.steps[r.i] && r.f in spec.steps[r.i]) spec.steps[r.i][r.f] = '$' + r.name; }); // the steps keep their "$name"
     // A run never starts or ends on a pause: the first step is the first step and the last is the last (the Prep's own load check covers loading).
     const trimmed = { start: 0, end: 0 };
-    while (spec.steps.length && spec.steps[0].type === 'pause') { spec.steps.shift(); trimmed.start++; }
-    while (spec.steps.length && spec.steps[spec.steps.length - 1].type === 'pause') { spec.steps.pop(); trimmed.end++; }
+    const droppable = st => st.type === 'pause' && !st.keep; // a pause marked keep stays even at the start or end
+    while (spec.steps.length && droppable(spec.steps[0])) { spec.steps.shift(); trimmed.start++; }
+    while (spec.steps.length && droppable(spec.steps[spec.steps.length - 1])) { spec.steps.pop(); trimmed.end++; }
     return { spec, errors, trimmed };
   }
 
@@ -393,19 +424,22 @@
     // Running out of tips is a warning, once per step: the machine pauses so more tips can be loaded.
     const outOfTips = new Set();
     let cur = null; // the event of the step being played, so a tip reload can be shown on it
+    let wantVol = null; // the tip rack size a step asked for (tipVol), null for the smallest rack the volume fits
     const take = (v, i, n = 1) => { // n tips at once: the 8-channel head takes a whole rack column, so a partly used column is skipped
-      const room = () => racks.filter(r => r.used + (n > 1 ? (r.rows - (r.used % r.rows)) % r.rows : 0) + n <= r.total);
+      const pool = wantVol ? racks.filter(r => r.tipVol === wantVol) : racks;
+      if (wantVol && !pool.length) { if (!outOfTips.has(i)) { outOfTips.add(i); errors.push({ step: i, msg: `The step asks for ${wantVol} µL tips but no ${wantVol} µL tip rack is on the deck.` }); } return null; }
+      const room = () => pool.filter(r => r.used + (n > 1 ? (r.rows - (r.used % r.rows)) % r.rows : 0) + n <= r.total);
       let avail = room();
       if (!avail.length && !racks.length) return null; // no tip rack at all, which is reported separately
       if (!avail.length) { // the machine pauses and a rack is filled again (the one that ran dry first), then the step carries on
         if (!outOfTips.has(i)) { outOfTips.add(i); warnings.push({ step: i, msg: 'Runs out of tips here. The machine will pause so you can load more.' }); }
-        const dry = racks[0];
+        const dry = pool[0];
         if (cur) { const full = snap(); full.tips = racks.map(r => ({ pos: r.pos, used: r === dry ? r.total : r.used, back: [...r.back] })); full.stillBack = dry.back.size; full.hl = JSON.parse(JSON.stringify(cur.hl)); full.reloaded = dry.pos; cur.reloadSnaps.push(full); } // the racks as they were when it ran dry
         dry.used = 0; dry.back.clear(); // used tips that were put back are taken out, and fresh ones go in
         if (cur) delete cur.hl[dry.pos]; // tips picked from that rack before the reload were on the box that has just been refilled
         avail = room(); if (!avail.length) return null;
       }
-      const fit = avail.filter(r => r.tipVol >= v).sort((a, b) => a.tipVol - b.tipVol)[0] || avail.sort((a, b) => b.tipVol - a.tipVol)[0];
+      const fit = wantVol ? avail[0] : (avail.filter(r => r.tipVol >= v).sort((a, b) => a.tipVol - b.tipVol)[0] || avail.sort((a, b) => b.tipVol - a.tipVol)[0]);
       if (fit.tipVol < v) warnings.push({ step: i, msg: `${v} µL exceeds the largest available tip (${fit.tipVol} µL).` });
       if (n > 1) fit.used += (fit.rows - (fit.used % fit.rows)) % fit.rows;
       const k = fit.used; fit.used += n; fit.sum += n; return { pos: fit.pos, name: wellName(k % fit.rows, Math.floor(k / fit.rows)), names: Array.from({ length: n }, (_, j) => wellName((k + j) % fit.rows, Math.floor((k + j) / fit.rows))) };
@@ -434,13 +468,14 @@
     };
     const aspirate = (id, w, v, i) => {
       const k = keyOf(id, w), c = vol[k]; asp[k] = (asp[k] || 0) + v;
-      if (!c || c.vol <= 0) { errors.push({ step: i, msg: `${k} is empty - nothing to aspirate.` }); return c && c.liquid; }
+      if (!c || c.vol <= 0) { errors.push({ step: i, msg: `${k} is empty - nothing to aspirate. Add the liquid it holds to the Contents list.` }); return (c && c.liquid) || ''; } // '' = no known liquid: never undefined
       if (c.vol < v) errors.push({ step: i, msg: `${k} has only ${c.vol.toFixed(1)} µL but ${v} µL is needed.` });
-      c.vol -= v; return c.liquid;
+      c.vol -= v; return c.liquid || '';
     };
     const dispense = (id, w, v, liquid, lw, i) => {
-      const k = keyOf(id, w), c = vol[k] || (vol[k] = { liquid, vol: 0 });
-      if (c.vol > 0 && liquid && c.liquid !== liquid && !c.liquid.includes(liquid)) c.liquid = `${c.liquid} + ${liquid}`; else if (!c.vol) c.liquid = liquid || c.liquid;
+      const k = keyOf(id, w), c = vol[k] || (vol[k] = { liquid: liquid || '', vol: 0 });
+      const have = typeof c.liquid === 'string' ? c.liquid : ''; // a well whose liquid is not known (filled from an empty source) has ''; it must not stop the check
+      if (c.vol > 0 && liquid && have !== liquid && !have.includes(liquid)) c.liquid = have ? `${have} + ${liquid}` : liquid; else if (!c.vol) c.liquid = liquid || have; else c.liquid = have;
       c.vol += v; if (c.vol > lw.cap) errors.push({ step: i, msg: `${k} would hold ${c.vol.toFixed(1)} µL, over its ${lw.cap} µL capacity.` });
     };
     const snap = () => ({ occ: { ...occ }, vol: JSON.parse(JSON.stringify(vol)), tips: racks.map(r => ({ pos: r.pos, used: r.used, back: [...r.back] })) });
@@ -448,6 +483,7 @@
     const grpSeen = {}; // steps of one group merge into one Prep step: two tips (one per channel of the 2-channel head), or one tip on the single channel
     const groupNeedsTip = s => { if (s.group === undefined) return true; const k = s.group + '|' + s.fromPos; grpSeen[k] = (grpSeen[k] || 0) + 1; return grpSeen[k] <= (s.head === 'one' ? 1 : 2); };
     p.steps.forEach((s, i) => {
+      wantVol = s.tipVol || null;
       const ev = { i, text: '', hl: {}, hl2: {} }; ev.reloadSnaps = []; ev.putBack = s.tipDiscard === 'rack'; cur = ev;
       const mark = (m, pos, ws) => { const list = (m[pos] = m[pos] || []); ws.forEach(w => { if (!list.includes(w)) list.push(w); }); };
       const v = +s.vol;
@@ -467,8 +503,9 @@
             }
           } else if (src.wells.length !== 1) errors.push({ step: i, msg: 'Add reagent needs exactly one source well.' });
           else {
-            const fit = racks.filter(r => r.tipVol >= v).sort((x, y) => x.tipVol - y.tipVol)[0] || racks.slice().sort((x, y) => y.tipVol - x.tipVol)[0], single = s.multiDispense === false;
-            if (!single && fit && src.lw.kind === 'reservoirs' && v + 2 * MIN_ALIQUOT > fit.tipVol) errors.push({ step: i, msg: `A multi-dispense of ${v} µL needs room in the ${fit.tipVol} µL tip for a pre and post aliquot of at least ${MIN_ALIQUOT} µL each. Use a smaller volume per dispense, or turn multi-dispense off for this step (one aspirate and one dispense per well).` });
+            const fit = (wantVol ? racks.find(r => r.tipVol === wantVol) : null) || racks.filter(r => r.tipVol >= v).sort((x, y) => x.tipVol - y.tipVol)[0] || racks.slice().sort((x, y) => y.tipVol - x.tipVol)[0], single = s.multiDispense === false;
+            const pre = s.preAliquot || MIN_ALIQUOT, post = s.postAliquot || MIN_ALIQUOT;
+            if (!single && fit && src.lw.kind === 'reservoirs' && v + pre + post > fit.tipVol) errors.push({ step: i, msg: `A multi-dispense of ${v} µL needs room in the ${fit.tipVol} µL tip for a pre and post aliquot (${s.preAliquot || s.postAliquot ? `${pre} and ${post} µL as set` : `at least ${MIN_ALIQUOT} µL each`}). Use a smaller volume per dispense, or turn multi-dispense off for this step (one aspirate and one dispense per well).` });
             const pk = single ? null : pickups(s, dst.wells, 'step'); if (pk) pk.forEach(it => grab(v, i, it)); else if (!single && groupNeedsTip(s)) grab(v, i); dst.wells.forEach(w => { if (single) grab(v, i); for (let q = 0; q < (single ? (s.passes || 1) : 1); q++) { const l = aspirate(src.id, src.wells[0], v, i); dispense(dst.id, w, v, l, dst.lw, i); } }); }
           mark(ev.hl, src.pos, src.wells); mark(ev.hl2, dst.pos, dst.wells);
         }
@@ -523,7 +560,11 @@
   function validate(input, { detail = false } = {}) {
     const c = check(input);
     if (!c.spec || c.errors.length) return { valid: false, spec: c.spec, errors: c.errors.map(e => (e.path ? `${e.path} ${e.msg}` : e.msg)), warnings: [], load: { tips: [], liquids: [] }, steps: [] };
-    const sim = simulate(c.spec);
+    let sim;
+    try { sim = simulate(c.spec); }
+    catch (e) { // never a crash: say what could not be checked (an unknown liquid or a malformed step the shape check let through)
+      return { valid: false, spec: c.spec, errors: [`The protocol could not be simulated (${e && e.message ? e.message : e}). Check that every liquid and well it names exists and is one of the Prep's.`], warnings: [], load: { tips: [], liquids: [] }, steps: [] };
+    }
     const where = e => (e.step != null ? `Step ${e.step + 1}: ${e.msg}` : e.msg);
     const out = { valid: sim.errors.length === 0, spec: c.spec, errors: sim.errors.map(where), warnings: sim.warnings.map(where), load: sim.load, steps: sim.events.map(e => e.text) };
     const t = c.trimmed || { start: 0, end: 0 };

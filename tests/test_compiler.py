@@ -537,6 +537,70 @@ class Errors(Base):
         self.fails(spec([{"type": "shake", "temp": 0, "rpm": 500, "minutes": 1}]), "step 1")
 
 
+class FaithfulSettings(Base):
+    """Per-step settings a hand-built Prep protocol carries (speeds, mix, aliquots, tip rack, tip handling, edge pauses, declared volumes):
+    each is written as given, and a step that gives none compiles exactly as it always did."""
+    DECK2 = {"2": {"lw": "tips_50"}, "6": {"lw": "tips_300"}, "3": {"lw": "plate_deep"}, "4": {"lw": "reservoir_60"}}
+
+    def s(self, steps, contents=None):
+        return {"specVersion": 1, "name": "T", "deck": self.DECK2, "contents": contents or CONTENTS, "steps": steps}
+
+    def test_everything_given_is_written_as_given(self):
+        peg = dict(dist(vol=27.5), tipVol=50, preAliquot=5, postAliquot=5, aspFlow=10, dspFlow=10, mixFlow=30, mixSpeed=30, mixAfter=True, mixVol=35, mixCycles=8,
+                   aspHeight=2, dspHeight=10, group=2)
+        dna = dict(head="two", type="transfer", fromPos="3", fromWells="H12", toPos="3", toWells="A1", vol=2.5, tipVol=50, newTips=False, aspFlow=10, dspFlow=10,
+                   mixFlow=30, mixSpeed=30, mixVol=20, mixCycles=3, group=1)
+        mixcol = dict(xfer("3", "A1:H1", "3", "A1:H1", 1), tipVol=50, preMix=3, preMixVol=20, aspFlow=10, dspFlow=10, mixFlow=30, group=3)
+        discard = {"type": "discard", "pos": "3", "wells": "A1:H1", "vol": 125, "tipVol": 300, "aspFlow": 20, "dspFlow": 40, "mixFlow": 30}
+        w5 = dict(dist(vol=100), tipVol=300, preAliquot=20, postAliquot=20, aspFlow=40, dspFlow=40, mixFlow=30, group=4)
+        raw = self.c(self.s([{"type": "pause", "message": "load", "keep": True}, dna, mixcol, peg, w5, discard,
+                             {"type": "pause", "message": "x" * 90, "minutes": 0.75, "fullName": True}, {"type": "pause", "message": "seal", "keep": True}]))
+        st = raw["steps"]
+        self.assertEqual([x["stepType"] for x in st], ["PauseStep", "TransferSamplesStep", "TransferSamplesStep", "AddReagentStep", "AddReagentStep", "TransferSamplesStep", "PauseStep", "PauseStep"])
+        self.assertEqual((st[0]["message"], st[7]["message"]), ("load", "seal"))   # a pause marked keep stays at the start and the end
+        self.assertEqual((st[6]["duration"], st[6]["name"]), (45, "x" * 90))
+        d, mc, pg, w, di = st[1], st[2], st[3], st[4], st[5]
+        self.assertEqual((d["channelSelection"], d["newTipsEachTransfer"], d["mixAfterDispense"]), ("TwoChannel", False, False))
+        self.assertEqual((d["dispenseSettings"]["mixVolume"], d["dispenseSettings"]["mixCycles"], d["aspirateSettings"]["mixSpeed"], d["dispenseSettings"]["mixSpeed"]), (20, 3, 30, 30))
+        self.assertEqual((mc["mixBeforeAspirate"], mc["aspirateSettings"]["mixVolume"], mc["aspirateSettings"]["mixCycles"]), (True, 20, 3))
+        self.assertEqual((pg["mixAfterDispense"], pg["dispenseSettings"]["mixVolume"], pg["dispenseSettings"]["mixCycles"]), (True, 35, 8))
+        self.assertEqual((pg["multiDispenseSettings"]["preAliquotSettings"]["volume"], pg["multiDispenseSettings"]["postAliquotSettings"]["volume"]), (5, 5))
+        self.assertEqual((pg["aspirateSettings"]["pipettingHeight"], pg["dispenseSettings"]["pipettingHeight"]), (2, 10))
+        for rec, flows in ((d, (10, 10, 30, 30)), (pg, (10, 10, 30, 30)), (w, (40, 40, 30, 30)), (di, (20, 40, 30, 30))):
+            c = rec["customLiquidSettings"]
+            self.assertEqual((c["asFlowRate"], c["dsFlowRate"], c["asMixFlowRate"], c["dsMixFlowRate"]), flows)   # both flows and both mix flows come from the spec
+        racks = {g["labware"]["id"] for p in raw["deck"]["positions"] for g in [p["labwareGroup"]] if g and g["labware"].get("classification") == "tiprack"}
+        gid = lambda rec: rec["tipLabwareGroupId"]
+        self.assertEqual(len({gid(d), gid(mc), gid(pg)}), 1)   # all three on the 50 uL rack, the PEG although volume + 2 x 20 would not fit it
+        self.assertEqual(len({gid(w), gid(di)}), 1)
+        self.assertNotEqual(gid(pg), gid(w))
+        self.assertEqual(len(racks), 2)
+
+    def test_a_step_that_gives_nothing_is_unchanged(self):
+        raw = self.c(self.s([dist(vol=100)]))
+        st = raw["steps"][0]
+        self.assertEqual((st["customizeLiquid"], st["mixAfterDispense"], st["mixBeforeAspirate"]), (False, False, False))
+        self.assertEqual(st["multiDispenseSettings"]["preAliquotSettings"]["volume"], 20)
+        self.assertEqual(st["aspirateSettings"]["mixSpeed"], 0)
+        one = self.c(self.s([dict(dist(vol=100), aspFlow=40)]))["steps"][0]["customLiquidSettings"]   # only one speed: the other flows come from the template, as before
+        self.assertEqual((one["asFlowRate"], one["dsFlowRate"], one["asMixFlowRate"]), (40, 420, 120))
+
+    def test_clear_refusals(self):
+        self.fails(self.s([dict(dist(vol=10), tipVol=1000)]), "1000 uL", "no 1000 uL tip rack")
+        self.fails(self.s([dict(dist(vol=45), tipVol=50, preAliquot=5, postAliquot=5)]), "aliquots of 5 and 5", "holds less")
+        self.fails(self.s([dict(dist(vol=10), tipVol=50, mixAfter=True), {"type": "mix", "pos": "3", "wells": "A1:H1", "vol": 5, "cycles": 3}]), "second mix")
+
+    def test_declared_reservoir_volume(self):
+        contents = [dict(CONTENTS[0], vol=3000, declare=True), CONTENTS[1]]
+        pos = self.c(self.s([dist(vol=10)], contents))["deck"]["positions"][3]["labwarePositions"]
+        self.assertEqual(pos[0]["liquidVolume"], 3000)
+        self.assertNotEqual(pos[1]["liquidVolume"], 3000)   # a row without declare still declares the whole reservoir
+
+    def test_edge_pauses_are_still_dropped_without_keep(self):
+        raw = self.c(self.s([{"type": "pause", "message": "a"}, dist(vol=10), {"type": "pause", "message": "b"}]))
+        self.assertEqual([x["stepType"] for x in raw["steps"]], ["AddReagentStep"])
+
+
 class MapFile(Base):
     def test_roundtrip_and_validation(self):
         self.assertEqual(labware_map.read_map(self.dir), {})
