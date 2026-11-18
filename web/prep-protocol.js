@@ -264,6 +264,7 @@
       if (!isObj(c)) return errors.push({ path: p, msg: 'must be an object' });
       const row = { pos: pos(c.pos, `${p}.pos`, errors), wells: wells(c.wells, `${p}.wells`, errors), liquid: liquid(c.liquid, `${p}.liquid`, errors), vol: num(c.vol, `${p}.vol`, errors, { min: 0, max: LIMITS.vol * 20 }) };
       if (given(c.declare)) { if (typeof c.declare === 'boolean') { if (c.declare) row.declare = true; } else errors.push({ path: `${p}.declare`, msg: 'must be true or false' }); }
+      if (given(c.name)) { if (typeof c.name === 'string' && c.name.trim() && c.name.trim().length <= 40) row.name = c.name.trim(); else errors.push({ path: `${p}.name`, msg: 'must be a short text (up to 40 characters): a nickname for this reservoir slot, so two slots of the same liquid class stay separate troughs' }); }
       spec.contents.push(row);
     });
 

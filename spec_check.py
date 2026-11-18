@@ -353,6 +353,12 @@ def check(data):
                     row["declare"] = True
             else:
                 errors.append({"path": f"{p}.declare", "msg": "must be true or false"})
+        nv = c.get("name", MISSING)   # a nickname for a reservoir slot: equal liquid classes in one reservoir would otherwise be merged into one trough
+        if _given(nv):
+            if isinstance(nv, str) and nv.strip() and len(nv.strip()) <= 40:
+                row["name"] = nv.strip()
+            else:
+                errors.append({"path": f"{p}.name", "msg": "must be a short text (up to 40 characters): a nickname for this reservoir slot, so two slots of the same liquid class stay separate troughs"})
         spec["contents"].append(row)
 
     steps = data.get("steps", MISSING)

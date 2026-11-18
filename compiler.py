@@ -250,12 +250,14 @@ class _Compiler:
 
     def build_deck(self):
         deck, self.slot_group = [], {}
-        liquids, declared = {}, {}
+        liquids, declared, nicknames = {}, {}, {}
         for c in self.spec["contents"]:
             if c["pos"] in self.spec["deck"] and self.kind(c["pos"]) in ("reservoirs", "trough"):
                 rows, cols = self.dims(self.spec["deck"][c["pos"]]["lw"])
                 for r, col in expand_wells(c["wells"], rows, cols, f"contents at position {c['pos']}"):
                     liquids[(c["pos"], r - 1)] = c["liquid"]
+                    if c.get("name"):
+                        nicknames[(c["pos"], r - 1)] = c["name"]
                     if c.get("declare"):   # declare: the row's volume is told to the Prep as the slot's liquid level (else the whole reservoir is declared full)
                         declared[(c["pos"], r - 1)] = c["vol"]
         for n in range(1, 9):
@@ -277,7 +279,7 @@ class _Compiler:
                                                    "so its compartments cannot be described.")
                     for i in range(o["columns"]):
                         lq = liquids.get((pos, i))
-                        g = self.group(d["lw"], cont, lq, tag=(pos, i) if lq else "empty")
+                        g = self.group(d["lw"], cont, lq, tag=(pos, i) if lq else "empty", name=nicknames.get((pos, i)))
                         self.slot_group[(pos, i)] = g
                         e["labwarePositions"].append({"row": 1, "column": i + 1, "id": 0, "labwareGroup": g, "position": i + 1, "positionName": "",
                                                       "liquidVolume": (_num(declared[(pos, i)]) if (pos, i) in declared else _num(cont["volume"])) if lq else 0})
